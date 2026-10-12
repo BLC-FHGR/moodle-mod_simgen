@@ -158,6 +158,15 @@ class generator {
             $response = $result->get_content();
             $parsed = response_parser::parse($response);
 
+            // Live conversations: validate and store the AI personas.
+            $personas = [];
+            if ($parsed['codetype'] === 'react' && prompt_builder::is_conversation($simgen, $baseversion ?: null)) {
+                $personas = conversation::normalise_personas($parsed['personas']);
+                if (!$personas) {
+                    throw new \moodle_exception('error_nopersonas', 'mod_simgen');
+                }
+            }
+
             $versionnum = self::next_versionnum((int)$simgen->id);
             $versionid = $DB->insert_record('simgen_versions', (object)[
                 'simgenid' => $simgen->id,
@@ -165,6 +174,8 @@ class generator {
                 'codetype' => $parsed['codetype'],
                 'sourcecode' => $parsed['sourcecode'],
                 'css' => $parsed['css'],
+                'personas' => $personas ? json_encode(['personas' => array_values($personas)],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
                 'prompttext' => $prompt,
                 'rawresponse' => $response,
                 'revisionnote' => (string)$simgen->pendingfeedback,

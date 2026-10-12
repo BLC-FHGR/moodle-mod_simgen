@@ -41,7 +41,8 @@ class prompt_builder {
     public static function build_generate_prompt(stdClass $simgen, context_module $context): string {
         $template = self::get_template('prompt_generate', prompt_templates::GENERATE);
         $map = self::briefing_placeholders($simgen, $context);
-        $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, 'react');
+        $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, 'react',
+            self::is_conversation($simgen));
         return self::fill($template, $map);
     }
 
@@ -60,13 +61,45 @@ class prompt_builder {
         $map = self::briefing_placeholders($simgen, $context);
         $map['{{CHANGE_REQUEST}}'] = trim($changerequest) !== '' ? trim($changerequest)
             : 'Verbessere die Simulation didaktisch und technisch, ohne ihren Charakter zu verändern.';
+        $conversation = self::is_conversation($simgen, $version);
         if ($version->codetype === 'html') {
             $map['{{CURRENT_CODE}}'] = "```html\n" . $version->sourcecode . "\n```";
         } else {
-            $map['{{CURRENT_CODE}}'] = "```css\n" . ($version->css ?? '') . "\n```\n\n```jsx\n" . $version->sourcecode . "\n```";
+            $current = "```css\n" . ($version->css ?? '') . "\n```\n\n";
+            if ($conversation) {
+                $personas = ['personas' => array_values(conversation::from_version($version))];
+                $current .= "```json\n" . json_encode($personas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES) . "\n```\n\n";
+            }
+            $map['{{CURRENT_CODE}}'] = $current . "```jsx\n" . $version->sourcecode . "\n```";
         }
-        $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, $version->codetype);
+        $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, $version->codetype,
+            $conversation);
         return self::fill($template, $map);
+    }
+
+    /**
+     * Whether the simulation uses live conversations with AI personas.
+     *
+     * @param stdClass $simgen
+     * @param stdClass|null $version version to revise (a version with personas stays a conversation simulation)
+     * @return bool
+     */
+    public static function is_conversation(stdClass $simgen, ?stdClass $version = null): bool {
+        if ($version && $version->codetype === 'html') {
+            return false;
+        }
+        return $simgen->simtype === 'conversation' || ($version && !empty(conversation::from_version($version)));
+    }
+
+    /**
+     * Maximum working time in minutes (admin setting).
+     *
+     * @return int
+     */
+    public static function max_duration(): int {
+        $value = (int)get_config('mod_simgen', 'maxduration');
+        return $value > 0 ? $value : 60;
     }
 
     /**
@@ -74,15 +107,19 @@ class prompt_builder {
      *
      * @param bool $savestate whether progress is persisted
      * @param string $codetype react or html
+     * @param bool $conversation live conversations with AI personas
      * @return string
      */
-    public static function technical_rules(bool $savestate, string $codetype): string {
+    public static function technical_rules(bool $savestate, string $codetype, bool $conversation = false): string {
         if ($codetype === 'html') {
             return prompt_templates::TECHNICAL_HTML;
         }
-        return str_replace('{{SAVESTATE_RULES}}',
-            $savestate ? prompt_templates::SAVESTATE_ON : prompt_templates::SAVESTATE_OFF,
-            prompt_templates::TECHNICAL_REACT);
+        return strtr(prompt_templates::TECHNICAL_REACT, [
+            '{{SAVESTATE_RULES}}' => $savestate ? prompt_templates::SAVESTATE_ON : prompt_templates::SAVESTATE_OFF,
+            '{{CONVERSATION_RULES}}' => $conversation ? prompt_templates::CONVERSATION_RULES : '',
+            '{{OUTPUT_FORMAT}}' => $conversation ? prompt_templates::OUTPUT_REACT_CONVERSATION
+                : prompt_templates::OUTPUT_REACT,
+        ]);
     }
 
     /**
@@ -94,7 +131,8 @@ class prompt_builder {
      */
     public static function briefing_placeholders(stdClass $simgen, context_module $context): array {
         $none = '(keine Angabe)';
-        $duration = (int)$simgen->durationmin > 0 ? ((int)$simgen->durationmin . ' Minuten') : $none;
+        $minutes = min((int)$simgen->durationmin, self::max_duration());
+        $duration = $minutes > 0 ? ($minutes . ' Minuten') : $none;
 
         $description = trim(content_to_text((string)($simgen->intro ?? ''), (int)($simgen->introformat ?? FORMAT_HTML)));
 

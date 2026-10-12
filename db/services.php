@@ -46,6 +46,27 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/simgen:savestate',
     ],
+    'mod_simgen_get_conversation' => [
+        'classname' => \mod_simgen\external\get_conversation::class,
+        'description' => 'Returns the conversation of the current user with an AI persona.',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'mod/simgen:converse',
+    ],
+    'mod_simgen_converse' => [
+        'classname' => \mod_simgen\external\converse::class,
+        'description' => 'Sends a message of the current user to an AI persona and returns its answer.',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/simgen:converse',
+    ],
+    'mod_simgen_reset_conversation' => [
+        'classname' => \mod_simgen\external\reset_conversation::class,
+        'description' => 'Deletes the conversation of the current user with an AI persona.',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/simgen:converse',
+    ],
     'mod_simgen_get_status' => [
         'classname' => \mod_simgen\external\get_status::class,
         'description' => 'Returns the generation status of a simulation.',

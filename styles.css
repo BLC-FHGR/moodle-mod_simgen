@@ -79,6 +79,31 @@ textarea.mod-simgen-code {
     tab-size: 2;
 }
 
+.mod-simgen-persona {
+    border-left: 3px solid #0f6cbf;
+    padding-left: 0.75rem;
+}
+
+.mod-simgen-message {
+    max-width: 48rem;
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.mod-simgen-message-persona {
+    background: #f1f3f5;
+}
+
+.mod-simgen-message-user {
+    background: #e7f1fb;
+    margin-left: auto;
+}
+
+.mod-simgen-message-text {
+    white-space: normal;
+}
+
 .mod-simgen-summary {
     max-width: 40rem;
     white-space: pre-wrap;

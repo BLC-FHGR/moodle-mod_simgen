@@ -29,6 +29,35 @@ Studierende ◄──── sandboxed iframe (sim.php) ◄──── veröffen
 - **Abschlussverfolgung**: «Ansehen» und «Simulation abgeschlossen» (`SimBridge.complete()`).
 - **Auswertung**: Status, Punkte und Ergebniszusammenfassung pro Person, Zurücksetzen.
 - Backup/Restore (Kurskopie ins nächste Semester), Kurs-Reset, Privacy-API, Events.
+- **Maximale Bearbeitungszeit** (Standard 60 Minuten, einstellbar): verhindert Briefings, die das Modell überfordern.
+- **Live-Gespräch mit KI-Figuren** (Simulationstyp, ab 0.2): siehe unten.
+
+## Live-Gespräch mit KI-Figuren (ab Version 0.2)
+
+Im Simulationstyp «Live-Gespräch mit KI-Figuren» schreiben Studierende frei, was sie sagen würden, und eine KI antwortet in der Rolle einer Figur (z. B. verärgerter Hotelgast an der Rezeption).
+
+```
+Generierung (einmalig, Lehrperson)          Laufzeit (pro Nachricht, Studierende)
+──────────────────────────────────          ─────────────────────────────────────
+KI erzeugt CSS + JSX + JSON mit Figuren  →  useConversation('gast').send(text)
+(Name, Rolle, Persona-Prompt, Eröffnung,     → player.js → Webservice mod_simgen_converse
+ max. Nachrichten, Signale)                  → Persona-Prompt + Verlauf aus der DB + Nachricht
+Figuren werden serverseitig gespeichert      → local_ai_manager (Einsatzzweck «Gespräche»)
+                                             ← Antwort + Signale (z. B. {"stimmung": 4, "geloest": true})
+```
+
+- **Persona-Prompts bleiben auf dem Server.** Die Simulation kennt nur ID, Name und Rolle; der Verlauf wird serverseitig gespeichert. Studierende können weder die Rolle umschreiben noch einen falschen Verlauf einschleusen.
+- **Signale** (von der KI pro Antwort eingeschätzt, z. B. Stimmung 1–5, Anliegen gelöst) steuern die Simulation: Stimmungsanzeige, nächste Phase, Debriefing.
+- **Grenzen (Kostenbremse):** max. Nachrichten pro Gespräch (Standard 20), max. Neustarts pro Gespräch (Standard 3) und max. Nachrichtenlänge (Standard 1000 Zeichen). Damit sind die KI-Anfragen pro Person und Figur auf Nachrichten × (Neustarts + 1) begrenzt; parallele Anfragen (z. B. zwei Tabs) werden gesperrt.
+- **Signale sind nicht fälschungssicher:** Lernende können versuchen, die KI zu einer bestimmten Einschätzung zu bewegen. Für Feedback und Steuerung gut geeignet, nicht für summative Bewertung.
+- **Neue Version = neues Gespräch:** Gespräche hängen an der Version. Nach dem Veröffentlichen einer neuen Version beginnen Lernende das Gespräch neu.
+- **Lehrpersonen** sehen die Figuren inkl. Prompts in den Versionsdetails, können sie unter «Code bearbeiten» anpassen und die Gesprächsprotokolle in der Auswertung lesen.
+- **Studierende** sehen einen Hinweis, dass ihre Nachrichten an die KI gehen und für Lehrpersonen einsehbar sind.
+
+**Voraussetzungen im KI-Manager:** Die Gesprächs-Anfragen stellen die **Studierenden**. Deshalb:
+1. In den Plugin-Einstellungen den Einsatzzweck für Gespräche wählen (Standard: «Chat»). Empfehlung: ein lokales Modell (z. B. chat.fhgr), damit die Texte der Studierenden im Haus bleiben.
+2. Im KI-Manager diesem Einsatzzweck für die Rolle der Studierenden (meist «base role») ein Modell zuweisen und ein sinnvolles Kontingent setzen.
+3. Studierende brauchen `local/ai_manager:use`; falls im KI-Manager Nutzungsbedingungen aktiviert sind, müssen sie diese einmal bestätigen.
 
 ## Installation
 
@@ -86,6 +115,11 @@ In jedem Simulationsdokument verfügbar (`runtime/bridge.js`):
 ```js
 // Wie useState, aber automatisch in Moodle gespeichert (pro Person):
 const [step, setStep] = useSimState('step', 0);
+
+// Live-Gespräch mit einer KI-Figur (nur Simulationstyp «Live-Gespräch»):
+const chat = useConversation('gast');
+// chat.messages, chat.send(text), chat.pending, chat.signals.stimmung, chat.turn, chat.maxTurns,
+// chat.done, chat.error, chat.ready, chat.reset()
 
 SimBridge.complete({ score: 7, maxScore: 10, summary: 'Entscheidungen: …' }); // Abschluss melden
 SimBridge.ready.then((state) => { /* gespeicherter Zustand oder null */ });  // v. a. für HTML-Dokumente

@@ -144,6 +144,21 @@
                             <dd class="col-sm-9"><pre class="mod-simgen-pre">{{revisionnote}}</pre></dd>
                         {{/revisionnote}}
                     </dl>
+                    {{#haspersonas}}
+                        <details class="mt-2">
+                            <summary>{{#str}}showpersonas, mod_simgen{{/str}}</summary>
+                            {{#personas}}
+                                <div class="mod-simgen-persona mt-2">
+                                    <strong>{{name}}</strong>{{#role}} – {{role}}{{/role}}
+                                    <span class="small text-muted">
+                                        ({{#str}}persona_maxturns, mod_simgen, {{maxturns}}{{/str}}{{#signals}}; {{#str}}persona_signals, mod_simgen{{/str}}: {{signals}}{{/signals}})
+                                    </span>
+                                    {{#opening}}<p class="mb-1"><em>«{{opening}}»</em></p>{{/opening}}
+                                    <pre class="mod-simgen-pre mod-simgen-scroll">{{prompt}}</pre>
+                                </div>
+                            {{/personas}}
+                        </details>
+                    {{/haspersonas}}
                     {{#prompt}}
                         <details class="mt-2">
                             <summary>{{#str}}showprompt, mod_simgen{{/str}}</summary>

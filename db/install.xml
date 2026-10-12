@@ -50,6 +50,7 @@
         <FIELD NAME="codetype" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="react" SEQUENCE="false" COMMENT="react or html"/>
         <FIELD NAME="sourcecode" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="css" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="personas" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: AI conversation partners of this version"/>
         <FIELD NAME="prompttext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Prompt sent to the AI"/>
         <FIELD NAME="rawresponse" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Response of the AI"/>
         <FIELD NAME="revisionnote" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Change request or note for this version"/>
@@ -89,6 +90,29 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="simgenid-userid" UNIQUE="true" FIELDS="simgenid, userid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="simgen_conversations" COMMENT="Live conversations of users with AI personas">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="simgenid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="versionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="personaid" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="messagedata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON list of messages"/>
+        <FIELD NAME="signaldata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON of the latest signals"/>
+        <FIELD NAME="turncount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="resetcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of restarts (limited by the admin setting maxresets)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="simgenid" TYPE="foreign" FIELDS="simgenid" REFTABLE="simgen" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="simgen-user-version-persona" UNIQUE="true" FIELDS="simgenid, userid, versionid, personaid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

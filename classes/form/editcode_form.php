@@ -62,9 +62,35 @@ class editcode_form extends \moodleform {
         $mform->setType('css', PARAM_RAW);
         $mform->hideIf('css', 'codetype', 'eq', 'html');
 
+        $mform->addElement('textarea', 'personas', get_string('personas', 'mod_simgen'), ['rows' => 14] + $codeattributes);
+        $mform->setType('personas', PARAM_RAW);
+        $mform->addHelpButton('personas', 'personas', 'mod_simgen');
+        $mform->hideIf('personas', 'codetype', 'eq', 'html');
+
         $mform->addElement('text', 'revisionnote', get_string('revisionnote', 'mod_simgen'), ['size' => 80]);
         $mform->setType('revisionnote', PARAM_TEXT);
 
         $this->add_action_buttons(true, get_string('savenewversion', 'mod_simgen'));
+    }
+
+    /**
+     * Validates the persona definitions.
+     *
+     * @param array $data
+     * @param array $files
+     * @return array
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if (($data['codetype'] ?? '') === 'react' && trim($data['personas'] ?? '') !== '') {
+            try {
+                if (!\mod_simgen\local\conversation::normalise_personas($data['personas'])) {
+                    $errors['personas'] = get_string('error_nopersonas', 'mod_simgen');
+                }
+            } catch (\moodle_exception $e) {
+                $errors['personas'] = $e->getMessage();
+            }
+        }
+        return $errors;
     }
 }

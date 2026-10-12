@@ -38,7 +38,8 @@ class response_parser {
      * Parses the AI response.
      *
      * @param string $content response content of local_ai_manager
-     * @return array ['codetype' => 'react'|'html', 'sourcecode' => string, 'css' => string]
+     * @return array ['codetype' => 'react'|'html', 'sourcecode' => string, 'css' => string, 'personas' => string]
+     *               personas is the raw JSON of the persona definitions ('' if none)
      * @throws moodle_exception if no usable code was found
      */
     public static function parse(string $content): array {
@@ -47,6 +48,7 @@ class response_parser {
         $css = [];
         $js = [];
         $html = [];
+        $json = [];
         $unknown = [];
         foreach ($blocks as $block) {
             $lang = $block['lang'];
@@ -56,6 +58,8 @@ class response_parser {
                 $js[] = $block['code'];
             } else if ($lang === 'html') {
                 $html[] = $block['code'];
+            } else if ($lang === 'json') {
+                $json[] = $block['code'];
             } else {
                 $unknown[] = $block['code'];
             }
@@ -63,7 +67,9 @@ class response_parser {
 
         // Unlabelled blocks: guess by content.
         foreach ($unknown as $code) {
-            if (preg_match('/function\s+App\b|const\s+App\s*=|React\./', $code)) {
+            if (preg_match('/^\s*[\[{]/', $code) && strpos($code, '"personas"') !== false) {
+                $json[] = $code;
+            } else if (preg_match('/function\s+App\b|const\s+App\s*=|React\./', $code)) {
                 $js[] = $code;
             } else if (stripos($code, '<html') !== false || stripos($code, '<!doctype') !== false) {
                 $html[] = $code;
@@ -77,10 +83,18 @@ class response_parser {
             if (!preg_match('/\bApp\b/', $source) && !preg_match('/export\s+default/', $source)) {
                 throw new moodle_exception('error_noapp', 'mod_simgen');
             }
+            // Persona definitions: prefer the block that contains "personas".
+            $personas = '';
+            foreach ($json as $block) {
+                if ($personas === '' || strpos($block, '"personas"') !== false) {
+                    $personas = trim($block);
+                }
+            }
             return [
                 'codetype' => 'react',
                 'sourcecode' => $source,
                 'css' => trim(implode("\n\n", $css)),
+                'personas' => $personas,
             ];
         }
         if ($html) {
@@ -90,6 +104,7 @@ class response_parser {
                 'codetype' => 'html',
                 'sourcecode' => trim($html[0]),
                 'css' => '',
+                'personas' => '',
             ];
         }
         throw new moodle_exception('error_nocode', 'mod_simgen');

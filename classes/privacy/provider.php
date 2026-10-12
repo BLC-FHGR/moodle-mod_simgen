@@ -62,9 +62,17 @@ class provider implements
             'timecreated' => 'privacy:metadata:simgen_versions:timecreated',
         ], 'privacy:metadata:simgen_versions');
 
+        $collection->add_database_table('simgen_conversations', [
+            'userid' => 'privacy:metadata:simgen_conversations:userid',
+            'messagedata' => 'privacy:metadata:simgen_conversations:messagedata',
+            'signaldata' => 'privacy:metadata:simgen_conversations:signaldata',
+            'timemodified' => 'privacy:metadata:simgen_conversations:timemodified',
+        ], 'privacy:metadata:simgen_conversations');
+
         $collection->add_subsystem_link('core_files', [], 'privacy:metadata:core_files');
         $collection->add_external_location_link('aiprovider', [
             'briefing' => 'privacy:metadata:aiprovider:briefing',
+            'conversation' => 'privacy:metadata:aiprovider:conversation',
         ], 'privacy:metadata:aiprovider');
         return $collection;
     }
@@ -83,12 +91,14 @@ class provider implements
                   JOIN {simgen} s ON s.id = cm.instance
              LEFT JOIN {simgen_states} st ON st.simgenid = s.id AND st.userid = :userid1
              LEFT JOIN {simgen_versions} v ON v.simgenid = s.id AND v.userid = :userid2
-                 WHERE st.id IS NOT NULL OR v.id IS NOT NULL";
+             LEFT JOIN {simgen_conversations} c ON c.simgenid = s.id AND c.userid = :userid3
+                 WHERE st.id IS NOT NULL OR v.id IS NOT NULL OR c.id IS NOT NULL";
         $contextlist = new contextlist();
         $contextlist->add_from_sql($sql, [
             'contextlevel' => CONTEXT_MODULE,
             'userid1' => $userid,
             'userid2' => $userid,
+            'userid3' => $userid,
         ]);
         return $contextlist;
     }
@@ -110,6 +120,8 @@ class provider implements
         $userlist->add_from_sql('userid', "SELECT st.userid {$base} JOIN {simgen_states} st ON st.simgenid = s.id
             WHERE cm.id = :cmid", $params);
         $userlist->add_from_sql('userid', "SELECT v.userid {$base} JOIN {simgen_versions} v ON v.simgenid = s.id
+            WHERE cm.id = :cmid", $params);
+        $userlist->add_from_sql('userid', "SELECT c.userid {$base} JOIN {simgen_conversations} c ON c.simgenid = s.id
             WHERE cm.id = :cmid", $params);
     }
 
@@ -159,6 +171,26 @@ class provider implements
                 writer::with_context($context)->export_data([get_string('privacy:path:versions', 'mod_simgen')],
                     (object)['versions' => $data]);
             }
+            $conversations = $DB->get_records('simgen_conversations', ['simgenid' => $cm->instance, 'userid' => $userid],
+                'timecreated ASC');
+            if ($conversations) {
+                $data = [];
+                foreach ($conversations as $c) {
+                    $messages = json_decode((string)$c->messagedata, true);
+                    $data[] = [
+                        'persona' => $c->personaid,
+                        'messages' => is_array($messages) ? array_map(fn($m) => [
+                            'role' => $m['role'] ?? '',
+                            'text' => $m['text'] ?? '',
+                            'time' => !empty($m['time']) ? transform::datetime($m['time']) : '',
+                        ], $messages) : [],
+                        'signals' => json_decode((string)$c->signaldata, true),
+                        'timemodified' => transform::datetime($c->timemodified),
+                    ];
+                }
+                writer::with_context($context)->export_data([get_string('privacy:path:conversations', 'mod_simgen')],
+                    (object)['conversations' => $data]);
+            }
         }
     }
 
@@ -177,6 +209,7 @@ class provider implements
             return;
         }
         $DB->delete_records('simgen_states', ['simgenid' => $cm->instance]);
+        $DB->delete_records('simgen_conversations', ['simgenid' => $cm->instance]);
         $DB->set_field('simgen_versions', 'userid', 0, ['simgenid' => $cm->instance]);
     }
 
@@ -197,6 +230,7 @@ class provider implements
                 continue;
             }
             $DB->delete_records('simgen_states', ['simgenid' => $cm->instance, 'userid' => $userid]);
+            $DB->delete_records('simgen_conversations', ['simgenid' => $cm->instance, 'userid' => $userid]);
             // Versions are course content: keep them, but remove the author.
             $DB->set_field('simgen_versions', 'userid', 0, ['simgenid' => $cm->instance, 'userid' => $userid]);
         }
@@ -220,6 +254,7 @@ class provider implements
         [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params['simgenid'] = $cm->instance;
         $DB->delete_records_select('simgen_states', "simgenid = :simgenid AND userid {$insql}", $params);
+        $DB->delete_records_select('simgen_conversations', "simgenid = :simgenid AND userid {$insql}", $params);
         $DB->set_field_select('simgen_versions', 'userid', 0, "simgenid = :simgenid AND userid {$insql}", $params);
     }
 }

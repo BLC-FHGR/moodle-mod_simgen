@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Overview of the progress and results of the participants.
+ * Overview of the progress, results and conversations of the participants.
  *
  * @package    mod_simgen
  * @copyright  2026 FH Graubünden
@@ -39,6 +39,7 @@ if ($resetuser) {
     require_sesskey();
     require_capability('mod/simgen:manage', $context);
     $DB->delete_records('simgen_states', ['simgenid' => $simgen->id, 'userid' => $resetuser]);
+    $DB->delete_records('simgen_conversations', ['simgenid' => $simgen->id, 'userid' => $resetuser]);
     $completion = new completion_info($course);
     if ($completion->is_enabled($cm)) {
         $completion->update_state($cm, COMPLETION_INCOMPLETE, $resetuser);
@@ -51,56 +52,95 @@ $PAGE->set_title(get_string('report', 'mod_simgen') . ': ' . format_string($simg
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->activityheader->disable();
 
-$userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
-$records = $DB->get_records_sql(
-    "SELECT s.*, {$userfields}
-       FROM {simgen_states} s
-       JOIN {user} u ON u.id = s.userid
-      WHERE s.simgenid = :simgenid AND u.deleted = 0
-   ORDER BY s.completed DESC, s.timemodified DESC",
-    ['simgenid' => $simgen->id]);
+// Progress records and conversations per user.
+$states = [];
+foreach ($DB->get_records('simgen_states', ['simgenid' => $simgen->id]) as $state) {
+    $states[$state->userid] = $state;
+}
+$conversations = $DB->get_records_sql(
+    'SELECT userid, COUNT(id) AS conversations, SUM(turncount) AS messages, MAX(timemodified) AS lastmodified
+       FROM {simgen_conversations}
+      WHERE simgenid = ?
+   GROUP BY userid', [$simgen->id]);
 
-$enrolled = count_enrolled_users($context, 'mod/simgen:savestate', 0, true);
-$started = count($records);
-$completedcount = count(array_filter($records, fn($r) => !empty($r->completed)));
+$userids = array_unique(array_merge(array_keys($states), array_keys($conversations)));
+$users = [];
+if ($userids) {
+    $fields = 'id, deleted, ' . implode(', ', \core_user\fields::get_name_fields());
+    $users = $DB->get_records_list('user', 'id', $userids, '', $fields);
+}
+
+// Test runs of teachers (incl. draft previews) are not shown.
+$managers = get_users_by_capability($context, 'mod/simgen:manage', 'u.id');
+
+$rows = [];
+foreach ($users as $user) {
+    if (!empty($user->deleted) || isset($managers[$user->id])) {
+        continue;
+    }
+    $state = $states[$user->id] ?? null;
+    $conv = $conversations[$user->id] ?? null;
+    $rows[] = (object)[
+        'user' => $user,
+        'state' => $state,
+        'conv' => $conv,
+        'completed' => $state && !empty($state->completed),
+        'lastactivity' => max($state ? (int)$state->timemodified : 0, $conv ? (int)$conv->lastmodified : 0),
+    ];
+}
+usort($rows, fn($a, $b) => [$b->completed, $b->lastactivity] <=> [$a->completed, $a->lastactivity]);
+
+$enrolled = count_enrolled_users($context, 'mod/simgen:view', 0, true);
+$completedcount = count(array_filter($rows, fn($r) => $r->completed));
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('report', 'mod_simgen') . ': ' . format_string($simgen->name));
 
 echo html_writer::tag('p', get_string('report_summary', 'mod_simgen', (object)[
-    'started' => $started,
+    'started' => count($rows),
     'completed' => $completedcount,
     'enrolled' => $enrolled,
 ]));
 
-if (!$records) {
+if (!$rows) {
     echo $OUTPUT->notification(get_string('report_empty', 'mod_simgen'), \core\output\notification::NOTIFY_INFO);
 } else {
     $canmanage = has_capability('mod/simgen:manage', $context);
+    $hasconversations = !empty($conversations);
+
     $table = new html_table();
     $table->head = [
         get_string('fullname'),
         get_string('report_status', 'mod_simgen'),
         get_string('report_score', 'mod_simgen'),
         get_string('report_summarycol', 'mod_simgen'),
-        get_string('report_lastactivity', 'mod_simgen'),
-        '',
     ];
+    if ($hasconversations) {
+        $table->head[] = get_string('report_conversations', 'mod_simgen');
+    }
+    $table->head[] = get_string('report_lastactivity', 'mod_simgen');
+    $table->head[] = '';
     $table->attributes['class'] = 'generaltable mod-simgen-report';
-    foreach ($records as $r) {
-        $status = $r->completed
+
+    foreach ($rows as $row) {
+        $state = $row->state;
+        $status = $row->completed
             ? html_writer::span(get_string('report_completed', 'mod_simgen'), 'badge badge-success bg-success')
             : html_writer::span(get_string('report_started', 'mod_simgen'), 'badge badge-secondary bg-secondary');
+
         $score = '';
-        if ($r->rawscore !== null) {
-            $score = format_float($r->rawscore, 2, true, true);
-            if ($r->maxscore !== null) {
-                $score .= ' / ' . format_float($r->maxscore, 2, true, true);
+        if ($state && $state->rawscore !== null) {
+            $score = format_float($state->rawscore, 2, true, true);
+            if ($state->maxscore !== null) {
+                $score .= ' / ' . format_float($state->maxscore, 2, true, true);
             }
         }
+        $summary = $state && $state->summary !== null && $state->summary !== ''
+            ? html_writer::tag('div', s($state->summary), ['class' => 'mod-simgen-summary']) : '';
+
         $reset = '';
         if ($canmanage) {
-            $reseturl = new moodle_url($url, ['resetuser' => $r->userid, 'sesskey' => sesskey()]);
+            $reseturl = new moodle_url($url, ['resetuser' => $row->user->id, 'sesskey' => sesskey()]);
             $reset = html_writer::link($reseturl, get_string('resetuser', 'mod_simgen'), [
                 'class' => 'btn btn-sm btn-outline-secondary',
                 'data-confirmation' => 'modal',
@@ -110,15 +150,17 @@ if (!$records) {
                 'data-confirmation-destination' => $reseturl->out(false),
             ]);
         }
-        $table->data[] = [
-            fullname($r),
-            $status,
-            $score,
-            $r->summary !== null && $r->summary !== '' ? html_writer::tag('div', s($r->summary),
-                ['class' => 'mod-simgen-summary']) : '',
-            userdate($r->timemodified, get_string('strftimedatetimeshort', 'langconfig')),
-            $reset,
-        ];
+
+        $cells = [fullname($row->user), $status, $score, $summary];
+        if ($hasconversations) {
+            $cells[] = $row->conv
+                ? html_writer::link(new moodle_url('/mod/simgen/conversation.php', ['id' => $cm->id, 'userid' => $row->user->id]),
+                    get_string('report_conversationlink', 'mod_simgen', (int)$row->conv->messages))
+                : '';
+        }
+        $cells[] = $row->lastactivity ? userdate($row->lastactivity, get_string('strftimedatetimeshort', 'langconfig')) : '';
+        $cells[] = $reset;
+        $table->data[] = $cells;
     }
     echo html_writer::table($table);
 }

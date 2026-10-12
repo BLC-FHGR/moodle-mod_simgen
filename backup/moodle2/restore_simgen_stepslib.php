@@ -41,6 +41,7 @@ class restore_simgen_activity_structure_step extends restore_activity_structure_
         ];
         if ($this->get_setting_value('userinfo')) {
             $paths[] = new restore_path_element('simgen_state', '/activity/simgen/states/state');
+            $paths[] = new restore_path_element('simgen_conversation', '/activity/simgen/conversations/conversation');
         }
         return $this->prepare_activity_structure($paths);
     }
@@ -96,6 +97,23 @@ class restore_simgen_activity_structure_step extends restore_activity_structure_
         }
         $data->versionid = (int)$this->get_mappingid('simgen_version', $data->versionid, 0);
         $DB->insert_record('simgen_states', $data);
+    }
+
+    /**
+     * Restores a live conversation of a user.
+     *
+     * @param array $data
+     */
+    protected function process_simgen_conversation($data) {
+        global $DB;
+        $data = (object)$data;
+        $data->simgenid = $this->get_new_parentid('simgen');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->versionid = (int)$this->get_mappingid('simgen_version', $data->versionid, 0);
+        if (!$data->userid || !$data->versionid) {
+            return;
+        }
+        $DB->insert_record('simgen_conversations', $data);
     }
 
     /**

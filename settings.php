@@ -47,6 +47,32 @@ if ($ADMIN->fulltree) {
         get_string('settings_maxcontentchars', 'mod_simgen'), get_string('settings_maxcontentchars_desc', 'mod_simgen'),
         30000, PARAM_INT));
 
+    $settings->add(new admin_setting_configtext('mod_simgen/maxduration',
+        get_string('settings_maxduration', 'mod_simgen'), get_string('settings_maxduration_desc', 'mod_simgen'),
+        60, PARAM_INT));
+
+    // Live conversations.
+    $settings->add(new admin_setting_heading('mod_simgen/heading_conversation',
+        get_string('settings_heading_conversation', 'mod_simgen'),
+        get_string('settings_heading_conversation_desc', 'mod_simgen')));
+
+    $settings->add(new admin_setting_configselect('mod_simgen/conversationpurpose',
+        get_string('settings_conversationpurpose', 'mod_simgen'),
+        get_string('settings_conversationpurpose_desc', 'mod_simgen'),
+        isset($purposes['chat']) ? 'chat' : 'singleprompt', $purposes));
+
+    $settings->add(new admin_setting_configtext('mod_simgen/maxturns',
+        get_string('settings_maxturns', 'mod_simgen'), get_string('settings_maxturns_desc', 'mod_simgen'),
+        20, PARAM_INT));
+
+    $settings->add(new admin_setting_configtext('mod_simgen/maxresets',
+        get_string('settings_maxresets', 'mod_simgen'), get_string('settings_maxresets_desc', 'mod_simgen'),
+        3, PARAM_INT));
+
+    $settings->add(new admin_setting_configtext('mod_simgen/maxmessagelength',
+        get_string('settings_maxmessagelength', 'mod_simgen'), get_string('settings_maxmessagelength_desc', 'mod_simgen'),
+        1000, PARAM_INT));
+
     $settings->add(new admin_setting_configexecutable('mod_simgen/pathtopdftotext',
         get_string('settings_pdftotext', 'mod_simgen'), get_string('settings_pdftotext_desc', 'mod_simgen'), ''));
 

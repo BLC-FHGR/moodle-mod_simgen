@@ -152,6 +152,7 @@ function simgen_delete_instance($id): bool {
         return false;
     }
     $DB->delete_records('simgen_states', ['simgenid' => $id]);
+    $DB->delete_records('simgen_conversations', ['simgenid' => $id]);
     $DB->delete_records('simgen_versions', ['simgenid' => $id]);
     $DB->delete_records('simgen', ['id' => $id]);
     return true;
@@ -296,6 +297,8 @@ function simgen_reset_userdata($data): array {
     $status = [];
     if (!empty($data->reset_simgen_states)) {
         $DB->delete_records_select('simgen_states',
+            'simgenid IN (SELECT id FROM {simgen} WHERE course = ?)', [$data->courseid]);
+        $DB->delete_records_select('simgen_conversations',
             'simgenid IN (SELECT id FROM {simgen} WHERE course = ?)', [$data->courseid]);
         $status[] = [
             'component' => get_string('modulenameplural', 'mod_simgen'),

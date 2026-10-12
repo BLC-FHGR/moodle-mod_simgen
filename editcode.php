@@ -25,6 +25,7 @@
 require(__DIR__ . '/../../config.php');
 
 use mod_simgen\form\editcode_form;
+use mod_simgen\local\conversation;
 use mod_simgen\local\generator;
 
 $id = required_param('id', PARAM_INT);
@@ -57,18 +58,24 @@ $form->set_data([
     'codetype' => $version ? $version->codetype : 'react',
     'sourcecode' => $version ? $version->sourcecode : "function App() {\n  return <div className=\"sim-app\">Hallo</div>;\n}\n",
     'css' => $version ? $version->css : '',
+    'personas' => $version && ($personas = conversation::from_version($version))
+        ? json_encode(['personas' => array_values($personas)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        : '',
     'revisionnote' => '',
 ]);
 
 if ($form->is_cancelled()) {
     redirect($viewurl);
 } else if ($data = $form->get_data()) {
+    $personas = $data->codetype === 'react' ? conversation::normalise_personas((string)$data->personas) : [];
     $newid = $DB->insert_record('simgen_versions', (object)[
         'simgenid' => $simgen->id,
         'versionnum' => generator::next_versionnum((int)$simgen->id),
         'codetype' => $data->codetype === 'html' ? 'html' : 'react',
         'sourcecode' => $data->sourcecode,
         'css' => $data->codetype === 'html' ? '' : (string)$data->css,
+        'personas' => $personas ? json_encode(['personas' => array_values($personas)],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         'prompttext' => null,
         'rawresponse' => null,
         'revisionnote' => trim((string)$data->revisionnote) ?: get_string('origin_manual', 'mod_simgen'),

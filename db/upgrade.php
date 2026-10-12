@@ -29,6 +29,40 @@
  * @return bool
  */
 function xmldb_simgen_upgrade($oldversion) {
-    // Future upgrade steps go here.
+    global $DB;
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026101300) {
+        // Live conversations: personas of a version and the conversation table.
+        $table = new xmldb_table('simgen_versions');
+        $field = new xmldb_field('personas', XMLDB_TYPE_TEXT, null, null, null, null, null, 'css');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $table = new xmldb_table('simgen_conversations');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('simgenid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('versionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('personaid', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('messagedata', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('signaldata', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('turncount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('resetcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('simgenid', XMLDB_KEY_FOREIGN, ['simgenid'], 'simgen', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_index('simgen-user-version-persona', XMLDB_INDEX_UNIQUE,
+            ['simgenid', 'userid', 'versionid', 'personaid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026101300, 'simgen');
+    }
+
     return true;
 }

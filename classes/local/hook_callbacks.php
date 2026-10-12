@@ -32,11 +32,33 @@ class hook_callbacks {
      * @return void
      */
     public static function handle_purpose_usage(\local_ai_manager\hook\purpose_usage $hook): void {
-        $purpose = get_config('mod_simgen', 'purpose') ?: 'singleprompt';
+        $hook->set_component_displayname('mod_simgen', get_string('pluginname', 'mod_simgen'));
+        $usages = [
+            get_config('mod_simgen', 'purpose') ?: 'singleprompt' => 'purposeplacedescription',
+            get_config('mod_simgen', 'conversationpurpose') ?: 'chat' => 'purposeplacedescription_conversation',
+        ];
+        if (count($usages) === 1) {
+            // Same purpose for both: declare both places.
+            $purpose = array_key_first($usages);
+            $usages = [$purpose => 'purposeplacedescription'];
+            self::declare($hook, $purpose, 'purposeplacedescription_conversation');
+        }
+        foreach ($usages as $purpose => $stringkey) {
+            self::declare($hook, $purpose, $stringkey);
+        }
+    }
+
+    /**
+     * Declares one place where a purpose is used.
+     *
+     * @param \local_ai_manager\hook\purpose_usage $hook
+     * @param string $purpose
+     * @param string $stringkey language string describing the place
+     * @return void
+     */
+    private static function declare(\local_ai_manager\hook\purpose_usage $hook, string $purpose, string $stringkey): void {
         try {
-            $hook->set_component_displayname('mod_simgen', get_string('pluginname', 'mod_simgen'));
-            $hook->add_purpose_usage_description($purpose, 'mod_simgen',
-                get_string('purposeplacedescription', 'mod_simgen'));
+            $hook->add_purpose_usage_description($purpose, 'mod_simgen', get_string($stringkey, 'mod_simgen'));
         } catch (\coding_exception $e) {
             // Configured purpose is not installed - nothing to declare.
             debugging('mod_simgen: ' . $e->getMessage(), DEBUG_DEVELOPER);

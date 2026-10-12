@@ -44,8 +44,8 @@ class backup_simgen_activity_structure_step extends backup_activity_structure_st
 
         $versions = new backup_nested_element('versions');
         $version = new backup_nested_element('version', ['id'], [
-            'versionnum', 'codetype', 'sourcecode', 'css', 'prompttext', 'rawresponse', 'revisionnote', 'origin',
-            'modelinfo', 'userid', 'timecreated',
+            'versionnum', 'codetype', 'sourcecode', 'css', 'personas', 'prompttext', 'rawresponse', 'revisionnote',
+            'origin', 'modelinfo', 'userid', 'timecreated',
         ]);
 
         $states = new backup_nested_element('states');
@@ -54,19 +54,29 @@ class backup_simgen_activity_structure_step extends backup_activity_structure_st
             'timemodified', 'timecompleted',
         ]);
 
+        $conversations = new backup_nested_element('conversations');
+        $conversation = new backup_nested_element('conversation', ['id'], [
+            'userid', 'versionid', 'personaid', 'messagedata', 'signaldata', 'turncount', 'resetcount', 'timecreated',
+            'timemodified',
+        ]);
+
         $simgen->add_child($versions);
         $versions->add_child($version);
         $simgen->add_child($states);
         $states->add_child($state);
+        $simgen->add_child($conversations);
+        $conversations->add_child($conversation);
 
         $simgen->set_source_table('simgen', ['id' => backup::VAR_ACTIVITYID]);
         $version->set_source_table('simgen_versions', ['simgenid' => backup::VAR_PARENTID], 'versionnum ASC');
         if ($userinfo) {
             $state->set_source_table('simgen_states', ['simgenid' => backup::VAR_PARENTID]);
+            $conversation->set_source_table('simgen_conversations', ['simgenid' => backup::VAR_PARENTID]);
         }
 
         $version->annotate_ids('user', 'userid');
         $state->annotate_ids('user', 'userid');
+        $conversation->annotate_ids('user', 'userid');
 
         $simgen->annotate_files('mod_simgen', 'intro', null);
         $simgen->annotate_files('mod_simgen', 'content', null);

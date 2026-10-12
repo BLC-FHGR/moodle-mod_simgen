@@ -28,6 +28,7 @@ require_once($CFG->dirroot . '/course/moodleform_mod.php');
 require_once($CFG->dirroot . '/mod/simgen/lib.php');
 
 use mod_simgen\local\options;
+use mod_simgen\local\prompt_builder;
 
 /**
  * Settings form of mod_simgen.
@@ -73,9 +74,11 @@ class mod_simgen_mod_form extends moodleform_mod {
         $mform->addElement('select', 'difficulty', get_string('difficulty', 'mod_simgen'), options::difficulties());
         $mform->setDefault('difficulty', 'intermediate');
 
-        $mform->addElement('text', 'durationmin', get_string('durationmin', 'mod_simgen'), ['size' => 5]);
+        $maxduration = prompt_builder::max_duration();
+        $mform->addElement('text', 'durationmin', get_string('durationmin_max', 'mod_simgen', $maxduration),
+            ['size' => 5]);
         $mform->setType('durationmin', PARAM_INT);
-        $mform->setDefault('durationmin', 20);
+        $mform->setDefault('durationmin', min(20, $maxduration));
         $mform->addRule('durationmin', null, 'required', null, 'client');
         $mform->addHelpButton('durationmin', 'durationmin', 'mod_simgen');
 
@@ -173,8 +176,9 @@ class mod_simgen_mod_form extends moodleform_mod {
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
-        if (!isset($data['durationmin']) || $data['durationmin'] < 1 || $data['durationmin'] > 600) {
-            $errors['durationmin'] = get_string('error_duration', 'mod_simgen');
+        $maxduration = prompt_builder::max_duration();
+        if (!isset($data['durationmin']) || $data['durationmin'] < 1 || $data['durationmin'] > $maxduration) {
+            $errors['durationmin'] = get_string('error_duration', 'mod_simgen', $maxduration);
         }
         if (core_text::strlen(trim($data['learningoutcomes'] ?? '')) < 10) {
             $errors['learningoutcomes'] = get_string('error_outcomes', 'mod_simgen');

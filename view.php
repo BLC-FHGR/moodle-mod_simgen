@@ -138,7 +138,16 @@ if ($canmanage) {
             'prompt' => (string)$current->prompttext,
             'response' => (string)$current->rawresponse,
             'ispublished' => $current->id == $simgen->publishedversion,
+            'personas' => array_values(array_map(fn($p) => [
+                'name' => $p['name'],
+                'role' => $p['role'],
+                'opening' => $p['opening'],
+                'prompt' => $p['prompt'],
+                'maxturns' => $p['maxturns'],
+                'signals' => implode(', ', array_keys($p['signals'])),
+            ], \mod_simgen\local\conversation::from_version($current))),
         ];
+        $panel['version']['haspersonas'] = !empty($panel['version']['personas']);
         $panel['nopublished'] = empty($simgen->publishedversion);
         $panel['publishedinfo'] = !empty($simgen->publishedversion) && isset($versions[$simgen->publishedversion])
             ? get_string('publishedinfo', 'mod_simgen', $versions[$simgen->publishedversion]->versionnum) : '';
@@ -173,6 +182,13 @@ if ($versionid) {
         $srcparams['version'] = $versionid;
     }
 
+    // Live conversations: learners must know that their messages are sent to the AI and visible to teachers.
+    $shownversion = $DB->get_record('simgen_versions', ['id' => $versionid], 'id, codetype, personas');
+    if ($shownversion && \mod_simgen\local\conversation::from_version($shownversion)) {
+        echo $OUTPUT->notification(get_string('conversation_privacynotice', 'mod_simgen'),
+            \core\output\notification::NOTIFY_INFO, false);
+    }
+
     echo $OUTPUT->render_from_template('mod_simgen/player', [
         'wrapperid' => $wrapperid,
         'src' => (new moodle_url('/mod/simgen/sim.php', $srcparams))->out(false),
@@ -191,6 +207,7 @@ if ($versionid) {
         'cansave' => $cansave,
         'canmanage' => $canmanage,
         'minheight' => (int)$simgen->minheight,
+        'versionid' => (int)$versionid,
     ]]);
 } else if (!$canmanage) {
     echo $OUTPUT->notification(get_string('notavailable', 'mod_simgen'), \core\output\notification::NOTIFY_INFO);

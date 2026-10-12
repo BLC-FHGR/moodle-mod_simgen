@@ -72,6 +72,18 @@ $capabilities = [
         ],
     ],
 
+    // Talk to AI personas in live conversation simulations (sends the user's messages to the AI).
+    'mod/simgen:converse' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+
     // See progress and results of all participants.
     'mod/simgen:viewreports' => [
         'riskbitmask' => RISK_PERSONAL,

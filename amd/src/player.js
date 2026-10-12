@@ -44,6 +44,7 @@ const call = (methodname, args) => Ajax.call([{methodname, args}])[0];
  * @param {Boolean} opts.cansave user may save (not a guest)
  * @param {Boolean} opts.canmanage user is a teacher (show errors with "fix with AI")
  * @param {Number} opts.minheight minimal iframe height in px
+ * @param {Number} opts.versionid shown version (the server only accepts drafts for teachers)
  * @param {String} opts.firstname first name of the user (offered to the simulation)
  */
 export const init = async(opts) => {
@@ -204,6 +205,35 @@ export const init = async(opts) => {
         }
     };
 
+    // Live conversations with AI personas: forward the request to the web services and answer the iframe.
+    const conversationResult = (result) => ({
+        reply: result.reply || '',
+        messages: JSON.parse(result.messages || '[]'),
+        signals: JSON.parse(result.signals || '{}'),
+        turn: result.turn,
+        maxTurns: result.maxturns,
+        done: !!result.done,
+    });
+
+    const handleConversation = (d) => {
+        const args = {cmid: opts.cmid, versionid: opts.versionid || 0, personaid: String(d.personaId || '')};
+        let methodname = 'mod_simgen_get_conversation';
+        if (d.type === 'converse') {
+            methodname = 'mod_simgen_converse';
+            args.message = String(d.message || '');
+        } else if (d.type === 'conversation-reset') {
+            methodname = 'mod_simgen_reset_conversation';
+        }
+        call(methodname, args)
+            .then((result) => send({type: 'response', requestId: d.requestId, ok: true, data: conversationResult(result)}))
+            .catch((e) => send({
+                type: 'response',
+                requestId: d.requestId,
+                ok: false,
+                error: (e && (e.message || e.error)) || String(e),
+            }));
+    };
+
     const handleError = (d) => {
         if (!opts.canmanage || !errorRegion) {
             return;
@@ -249,6 +279,11 @@ export const init = async(opts) => {
                 break;
             case 'reload':
                 reloadFrame();
+                break;
+            case 'conversation-load':
+            case 'converse':
+            case 'conversation-reset':
+                handleConversation(d);
                 break;
         }
     });

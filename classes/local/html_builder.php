@@ -53,6 +53,8 @@ class html_builder {
             'codetype' => $version->codetype,
             'source' => $version->codetype === 'react' ? (string)$version->sourcecode : '',
             'css' => (string)($version->css ?? ''),
+            // Public persona data only - the persona prompts stay on the server.
+            'personas' => conversation::public_personas(conversation::from_version($version)),
             'strings' => self::strings(),
         ];
         $runtime = '<script>window.__SIMGEN__ = ' . self::json($config) . ';</script>' . "\n"
@@ -172,7 +174,7 @@ HTML;
      */
     private static function strings(): array {
         $keys = ['errortitle', 'errortext', 'errortextnonfatal', 'errordetails', 'reload', 'reset', 'close',
-            'compileerror', 'noapp', 'libsfailed'];
+            'compileerror', 'noapp', 'libsfailed', 'conversationunavailable', 'conversationtimeout', 'unknownpersona'];
         $strings = [];
         foreach ($keys as $key) {
             $strings[$key] = get_string('player_' . $key, 'mod_simgen');

@@ -45,6 +45,11 @@ class options {
         'roleplay' => 'Dialog- und Rollensimulation: Ein Gespräch mit einer fiktiven Person (z. B. Kundin, Patient, '
             . 'Mitarbeitende) mit vordefinierten Antwortoptionen. Die Reaktionen der Figur hängen von der Wahl ab. '
             . 'Keine KI zur Laufzeit – alle Dialogverläufe sind im Code hinterlegt.',
+        'conversation' => 'Live-Gesprächs- und Entscheidungssimulation: Die Lernenden führen freie Gespräche mit einer '
+            . 'oder mehreren KI-gesteuerten Figuren (z. B. Gast, Kundin, Patient, Mitarbeitender), deren Antworten zur '
+            . 'Laufzeit von einer KI erzeugt werden. Das Gespräch ist in ein Szenario mit klarem Gesprächsziel und '
+            . 'Entscheidungen eingebettet; die eingeschätzten Signale (z. B. Stimmung, Ziel erreicht) steuern den '
+            . 'Verlauf und fliessen ins Debriefing ein.',
         'game' => 'Planspiel / Strategiesimulation: Mehrere Runden, in denen die Lernenden Ressourcen einsetzen und '
             . 'Kennzahlen beeinflussen. Zielkonflikte sichtbar machen, Rundenauswertung und Gesamtauswertung.',
         'data' => 'Datenexploration: Ein realistischer, im Code erzeugter Datensatz, den die Lernenden filtern, gruppieren '
