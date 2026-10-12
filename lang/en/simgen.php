@@ -312,3 +312,6 @@ $string['error_conversationbusy'] = 'The character is still answering your previ
 $string['error_resetlimit'] = 'This conversation cannot be restarted any more.';
 $string['settings_maxresets'] = 'Maximum restarts per conversation';
 $string['settings_maxresets_desc'] = 'How often a learner may restart a conversation with a character ("Start again"). Together with the maximum number of messages this limits the AI requests per learner and character to messages × (restarts + 1).';
+$string['aiwarning_conversationhint'] = 'Live conversations use the AI purpose "{$a}". The requests are made by the learners: make sure in the AI manager that the role of the students may use this purpose (model assigned, quota > 0).';
+$string['aiwarning_purpose'] = 'The AI purpose "{$a->purpose}" is currently not available for you: {$a->message}';
+$string['aiwarning_unavailable'] = 'The AI is currently not available for you: {$a}';

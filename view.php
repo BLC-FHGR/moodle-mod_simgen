@@ -25,6 +25,7 @@
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 
+use mod_simgen\local\ai_status;
 use mod_simgen\local\generator;
 use mod_simgen\local\html_builder;
 
@@ -161,6 +162,27 @@ if ($canmanage) {
         $panel['downloadurl'] = (new moodle_url('/mod/simgen/sim.php', $versionparams + ['download' => 1]))->out(false);
     }
     $panel['reporturl'] = (new moodle_url('/mod/simgen/report.php', ['id' => $cm->id]))->out(false);
+
+    // Is the AI usable? Generation purpose and - for live conversations - the conversation purpose.
+    $purposes = [get_config('mod_simgen', 'purpose') ?: 'singleprompt'];
+    $conversationpurpose = get_config('mod_simgen', 'conversationpurpose') ?: 'chat';
+    $isconversation = $simgen->simtype === 'conversation' || !empty($panel['version']['haspersonas']);
+    if ($isconversation) {
+        $purposes[] = $conversationpurpose;
+    }
+    foreach (ai_status::unavailable_purposes($USER, $context->id, $purposes) as $purpose => $message) {
+        $warning = $purpose === '*'
+            ? get_string('aiwarning_unavailable', 'mod_simgen', $message)
+            : get_string('aiwarning_purpose', 'mod_simgen', (object)[
+                'purpose' => ai_status::purpose_name($purpose),
+                'message' => $message,
+            ]);
+        echo $OUTPUT->notification($warning, \core\output\notification::NOTIFY_WARNING);
+    }
+    if ($isconversation) {
+        echo $OUTPUT->notification(get_string('aiwarning_conversationhint', 'mod_simgen',
+            ai_status::purpose_name($conversationpurpose)), \core\output\notification::NOTIFY_INFO);
+    }
 
     echo $OUTPUT->render_from_template('mod_simgen/manage', $panel);
 

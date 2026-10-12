@@ -323,7 +323,7 @@
          * @returns {Promise} {messages, signals, turn, maxTurns, done}
          */
         loadConversation: function(personaId) {
-            return request('conversation-load', {personaId: normaliseId(personaId)});
+            return request('conversation-load', {personaId: resolveId(personaId)});
         },
 
         /**
@@ -334,7 +334,7 @@
          * @returns {Promise} {reply, messages, signals, turn, maxTurns, done}
          */
         converse: function(personaId, message) {
-            return request('converse', {personaId: normaliseId(personaId), message: String(message)});
+            return request('converse', {personaId: resolveId(personaId), message: String(message)});
         },
 
         /**
@@ -344,7 +344,7 @@
          * @returns {Promise} {messages, signals, turn, maxTurns, done}
          */
         resetConversation: function(personaId) {
-            return request('conversation-reset', {personaId: normaliseId(personaId)});
+            return request('conversation-reset', {personaId: resolveId(personaId)});
         }
     };
 
@@ -400,14 +400,55 @@
         }
     }
 
+    /**
+     * Finds a persona. Tolerates ids the generated code derived from the name ("Frau Keller") and falls back to
+     * the only persona if there is just one - small models often do not use the exact id.
+     *
+     * @param {String} personaId
+     * @returns {Object|null}
+     */
     function findPersona(personaId) {
         var list = SimBridge.personas;
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].id === personaId) {
+        var id = normaliseId(personaId);
+        var i;
+        for (i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
                 return list[i];
             }
         }
+        for (i = 0; i < list.length; i++) {
+            if (normaliseId(list[i].name) === id) {
+                return list[i];
+            }
+        }
+        if (list.length === 1) {
+            if (window.console) {
+                window.console.warn('mod_simgen: unknown persona "' + personaId + '", using "' + list[0].id + '".');
+            }
+            return list[0];
+        }
         return null;
+    }
+
+    function resolveId(personaId) {
+        var persona = findPersona(personaId);
+        return persona ? persona.id : normaliseId(personaId);
+    }
+
+    /**
+     * Shows a message as Moodle notification on the page (independent of the generated user interface).
+     *
+     * @param {String} message
+     */
+    function notify(message) {
+        post({type: 'notify', message: String(message || '').slice(0, 1000)});
+    }
+
+    function unknownPersonaMessage(personaId) {
+        var ids = SimBridge.personas.map(function(p) {
+            return p.id;
+        }).join(', ');
+        return (STR.unknownpersona || 'Unknown persona') + ': "' + personaId + '"' + (ids ? ' (' + ids + ')' : '');
     }
 
     /**
@@ -418,8 +459,9 @@
      */
     function useConversation(personaId) {
         var R = window.React;
-        personaId = normaliseId(personaId);
-        var persona = findPersona(personaId);
+        var requestedId = String(personaId === undefined || personaId === null ? '' : personaId);
+        var persona = findPersona(requestedId);
+        personaId = persona ? persona.id : normaliseId(requestedId);
         var initialMessages = persona && persona.opening ? [{role: 'persona', text: persona.opening}] : [];
 
         var dataState = R.useState({
@@ -433,12 +475,14 @@
         var setData = dataState[1];
         var readyState = R.useState(false);
         var pendingState = R.useState(false);
-        var errorState = R.useState(persona ? null : (STR.unknownpersona || 'Unknown persona') + ': ' + personaId);
+        var errorState = R.useState(persona ? null : unknownPersonaMessage(requestedId));
         var pendingRef = R.useRef(false);
 
         R.useEffect(function() {
             var alive = true;
             if (!persona) {
+                // Visible for everybody and reported to the teacher (who can let the AI fix the code).
+                showError(STR.errortitle, new Error(unknownPersonaMessage(requestedId)), false);
                 readyState[1](true);
                 return undefined;
             }
@@ -460,7 +504,13 @@
 
         var send = R.useCallback(function(text) {
             text = String(text === undefined || text === null ? '' : text).trim();
-            if (!text || pendingRef.current || !persona) {
+            if (!text || pendingRef.current) {
+                return Promise.resolve(null);
+            }
+            if (!persona) {
+                // Never swallow a message silently.
+                errorState[1](unknownPersonaMessage(requestedId));
+                notify(unknownPersonaMessage(requestedId));
                 return Promise.resolve(null);
             }
             pendingRef.current = true;
@@ -479,12 +529,17 @@
                 pendingRef.current = false;
                 pendingState[1](false);
                 errorState[1](err.message);
+                // Keep the message visible (marked as failed); the Moodle page shows the error as notification.
                 setData(function(prev) {
-                    return Object.assign({}, prev, {messages: prev.messages.slice(0, -1)});
+                    var messages = prev.messages.slice();
+                    if (messages.length && messages[messages.length - 1].role === 'user') {
+                        messages[messages.length - 1] = Object.assign({}, messages[messages.length - 1], {failed: true});
+                    }
+                    return Object.assign({}, prev, {messages: messages});
                 });
                 return null;
             });
-        }, [personaId]);
+        }, [personaId, requestedId]);
 
         var reset = R.useCallback(function() {
             if (!persona) {

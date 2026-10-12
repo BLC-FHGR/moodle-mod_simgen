@@ -226,12 +226,17 @@ export const init = async(opts) => {
         }
         call(methodname, args)
             .then((result) => send({type: 'response', requestId: d.requestId, ok: true, data: conversationResult(result)}))
-            .catch((e) => send({
-                type: 'response',
-                requestId: d.requestId,
-                ok: false,
-                error: (e && (e.message || e.error)) || String(e),
-            }));
+            .catch((e) => {
+                const error = (e && (e.message || e.error)) || String(e);
+                // Always visible, even if the generated user interface does not show chat.error.
+                showNotice(error);
+                send({type: 'response', requestId: d.requestId, ok: false, error});
+            });
+    };
+
+    const showNotice = (message) => {
+        addToast(String(message || '').slice(0, 1000), {type: 'danger', autohide: true, delay: 15000, closeButton: true})
+            .catch(() => null);
     };
 
     const handleError = (d) => {
@@ -284,6 +289,9 @@ export const init = async(opts) => {
             case 'converse':
             case 'conversation-reset':
                 handleConversation(d);
+                break;
+            case 'notify':
+                showNotice(d.message);
                 break;
         }
     });

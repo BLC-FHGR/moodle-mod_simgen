@@ -312,3 +312,6 @@ $string['error_conversationbusy'] = 'Die Figur antwortet noch auf Ihre vorherige
 $string['error_resetlimit'] = 'Dieses Gespräch kann nicht mehr neu begonnen werden.';
 $string['settings_maxresets'] = 'Maximale Neustarts pro Gespräch';
 $string['settings_maxresets_desc'] = 'Wie oft Lernende ein Gespräch mit einer Figur neu beginnen dürfen. Zusammen mit der maximalen Anzahl Nachrichten begrenzt das die KI-Anfragen pro Person und Figur auf Nachrichten × (Neustarts + 1).';
+$string['aiwarning_conversationhint'] = 'Live-Gespräche nutzen den KI-Einsatzzweck «{$a}». Die Anfragen stellen die Lernenden: Stellen Sie im KI-Manager sicher, dass die Rolle der Studierenden diesen Einsatzzweck nutzen darf (Modell zugewiesen, Kontingent > 0).';
+$string['aiwarning_purpose'] = 'Der KI-Einsatzzweck «{$a->purpose}» ist für Sie derzeit nicht verfügbar: {$a->message}';
+$string['aiwarning_unavailable'] = 'Die KI ist für Sie derzeit nicht verfügbar: {$a}';

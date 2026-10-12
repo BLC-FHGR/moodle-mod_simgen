@@ -41,10 +41,10 @@ class hook_callbacks {
             // Same purpose for both: declare both places.
             $purpose = array_key_first($usages);
             $usages = [$purpose => 'purposeplacedescription'];
-            self::declare($hook, $purpose, 'purposeplacedescription_conversation');
+            self::declare_usage($hook, $purpose, 'purposeplacedescription_conversation');
         }
         foreach ($usages as $purpose => $stringkey) {
-            self::declare($hook, $purpose, $stringkey);
+            self::declare_usage($hook, $purpose, $stringkey);
         }
     }
 
@@ -56,7 +56,7 @@ class hook_callbacks {
      * @param string $stringkey language string describing the place
      * @return void
      */
-    private static function declare(\local_ai_manager\hook\purpose_usage $hook, string $purpose, string $stringkey): void {
+    private static function declare_usage(\local_ai_manager\hook\purpose_usage $hook, string $purpose, string $stringkey): void {
         try {
             $hook->add_purpose_usage_description($purpose, 'mod_simgen', get_string($stringkey, 'mod_simgen'));
         } catch (\coding_exception $e) {
