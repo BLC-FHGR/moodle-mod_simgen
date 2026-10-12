@@ -1,0 +1,63 @@
+/* Base styles of every React simulation document (mod_simgen). The generated CSS is added afterwards. */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+}
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #1d2125;
+    background: #fff;
+    padding: 16px;
+}
+button, input, select, textarea {
+    font: inherit;
+}
+:focus-visible {
+    outline: 3px solid #0f6cbf;
+    outline-offset: 2px;
+}
+.simgen-loading {
+    padding: 2rem;
+    text-align: center;
+    color: #6a737b;
+}
+.simgen-error {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border: 1px solid #b02a37;
+    border-radius: 6px;
+    background: #fbeaec;
+    color: #58151c;
+    font-size: 14px;
+}
+.simgen-error pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    max-height: 240px;
+    overflow: auto;
+    background: #fff;
+    padding: 8px;
+    border-radius: 4px;
+}
+.simgen-error-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+.simgen-error-actions button {
+    padding: 4px 12px;
+    border: 1px solid #58151c;
+    border-radius: 4px;
+    background: #fff;
+    color: #58151c;
+    cursor: pointer;
+}

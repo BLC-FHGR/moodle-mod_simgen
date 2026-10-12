@@ -1,0 +1,17 @@
+# Build-Artefakte / Distribution (Plugin wird aus dem Ordner simgen/ gepackt)
+*.zip
+
+# Lokale Claude-Code-Einstellungen
+.claude/
+
+# Betriebssystem / Editor / OneDrive
+desktop.ini
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Node (falls kuenftig AMD-Build-Tooling genutzt wird)
+node_modules/

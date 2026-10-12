@@ -1,0 +1,178 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_simgen/manage
+
+    Management panel for teachers: generation status, versions, publishing.
+
+    Example context (json):
+    {
+        "cmid": 1,
+        "sesskey": "abc",
+        "pending": false,
+        "generating": false,
+        "error": false,
+        "none": false,
+        "statusmessage": "",
+        "generatenowurl": "#",
+        "retryurl": "#",
+        "settingsurl": "#",
+        "hasversions": true,
+        "versionselect": "<select></select>",
+        "version": {
+            "id": 3,
+            "num": 3,
+            "origin": "KI-Überarbeitung",
+            "time": "12.10.2026, 14:03",
+            "author": "Noah Huber",
+            "revisionnote": "Mehr Feedback einbauen",
+            "modelinfo": "gpt-4o",
+            "prompt": "...",
+            "response": "...",
+            "ispublished": false
+        },
+        "publishedinfo": "Veröffentlicht: Version 2",
+        "nopublished": false,
+        "publishurl": "#",
+        "unpublishurl": "#",
+        "reviseurl": "#",
+        "editcodeurl": "#",
+        "reporturl": "#",
+        "downloadurl": "#",
+        "reviseformurl": "#"
+    }
+}}
+<div class="mod-simgen-manage card mb-3">
+    <div class="card-body">
+
+        {{#pending}}
+            <div class="alert alert-info" role="status">
+                <strong>{{#str}}status_pending, mod_simgen{{/str}}</strong>
+                <span class="mod-simgen-elapsed" data-region="simgen-elapsed"></span>
+                <p class="mb-2">{{#str}}status_pending_help, mod_simgen{{/str}}</p>
+                <a class="btn btn-secondary btn-sm" href="{{generatenowurl}}">{{#str}}generatenow, mod_simgen{{/str}}</a>
+            </div>
+        {{/pending}}
+
+        {{#generating}}
+            <div class="alert alert-info" role="status">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <strong>{{#str}}status_generating, mod_simgen{{/str}}</strong>
+                <span class="mod-simgen-elapsed" data-region="simgen-elapsed"></span>
+                <p class="mb-0">{{#str}}status_generating_help, mod_simgen{{/str}}</p>
+            </div>
+        {{/generating}}
+
+        {{#error}}
+            <div class="alert alert-danger" role="alert">
+                <strong>{{#str}}status_error, mod_simgen{{/str}}</strong>
+                <pre class="mod-simgen-pre mt-2">{{statusmessage}}</pre>
+                <a class="btn btn-primary btn-sm" href="{{retryurl}}">{{#str}}retry, mod_simgen{{/str}}</a>
+                <a class="btn btn-secondary btn-sm" href="{{settingsurl}}">{{#str}}editbriefing, mod_simgen{{/str}}</a>
+            </div>
+        {{/error}}
+
+        {{#none}}
+            <div class="alert alert-secondary">
+                <p>{{#str}}status_none, mod_simgen{{/str}}</p>
+                <a class="btn btn-primary btn-sm" href="{{retryurl}}">{{#str}}generatefirst, mod_simgen{{/str}}</a>
+            </div>
+        {{/none}}
+
+        {{#hasversions}}
+            <div class="mod-simgen-versionbar">
+                <div class="mod-simgen-versionselect">{{{versionselect}}}</div>
+                {{#version}}
+                    {{#ispublished}}
+                        <span class="badge badge-success bg-success">{{#str}}badge_published, mod_simgen{{/str}}</span>
+                    {{/ispublished}}
+                    {{^ispublished}}
+                        <span class="badge badge-warning bg-warning text-dark">{{#str}}badge_draft, mod_simgen{{/str}}</span>
+                    {{/ispublished}}
+                {{/version}}
+                <span class="small text-muted">{{publishedinfo}}</span>
+            </div>
+
+            {{#nopublished}}
+                <div class="alert alert-warning mt-2 mb-2">{{#str}}nopublished_help, mod_simgen{{/str}}</div>
+            {{/nopublished}}
+
+            <div class="mod-simgen-actions mt-2">
+                {{#version}}
+                    {{^ispublished}}
+                        <a class="btn btn-primary btn-sm" href="{{publishurl}}">{{#str}}publish, mod_simgen{{/str}}</a>
+                    {{/ispublished}}
+                    {{#ispublished}}
+                        <a class="btn btn-outline-secondary btn-sm" href="{{unpublishurl}}">{{#str}}unpublish, mod_simgen{{/str}}</a>
+                    {{/ispublished}}
+                {{/version}}
+                <a class="btn btn-secondary btn-sm" href="{{reviseurl}}">{{#str}}revise, mod_simgen{{/str}}</a>
+                <a class="btn btn-secondary btn-sm" href="{{editcodeurl}}">{{#str}}editcode, mod_simgen{{/str}}</a>
+                <a class="btn btn-secondary btn-sm" href="{{reporturl}}">{{#str}}report, mod_simgen{{/str}}</a>
+                <a class="btn btn-outline-secondary btn-sm" href="{{downloadurl}}">{{#str}}downloadhtml, mod_simgen{{/str}}</a>
+                <a class="btn btn-outline-secondary btn-sm" href="{{settingsurl}}">{{#str}}editbriefing, mod_simgen{{/str}}</a>
+            </div>
+
+            {{#version}}
+                <details class="mod-simgen-details mt-3">
+                    <summary>{{#str}}versiondetails, mod_simgen{{/str}}</summary>
+                    <dl class="row mt-2 mb-0">
+                        <dt class="col-sm-3">{{#str}}version_origin, mod_simgen{{/str}}</dt>
+                        <dd class="col-sm-9">{{origin}}</dd>
+                        <dt class="col-sm-3">{{#str}}version_created, mod_simgen{{/str}}</dt>
+                        <dd class="col-sm-9">{{time}}{{#author}} – {{author}}{{/author}}</dd>
+                        {{#modelinfo}}
+                            <dt class="col-sm-3">{{#str}}version_model, mod_simgen{{/str}}</dt>
+                            <dd class="col-sm-9">{{modelinfo}}</dd>
+                        {{/modelinfo}}
+                        {{#revisionnote}}
+                            <dt class="col-sm-3">{{#str}}version_note, mod_simgen{{/str}}</dt>
+                            <dd class="col-sm-9"><pre class="mod-simgen-pre">{{revisionnote}}</pre></dd>
+                        {{/revisionnote}}
+                    </dl>
+                    {{#prompt}}
+                        <details class="mt-2">
+                            <summary>{{#str}}showprompt, mod_simgen{{/str}}</summary>
+                            <pre class="mod-simgen-pre mod-simgen-scroll">{{prompt}}</pre>
+                        </details>
+                    {{/prompt}}
+                    {{#response}}
+                        <details class="mt-2">
+                            <summary>{{#str}}showresponse, mod_simgen{{/str}}</summary>
+                            <pre class="mod-simgen-pre mod-simgen-scroll">{{response}}</pre>
+                        </details>
+                    {{/response}}
+                </details>
+            {{/version}}
+        {{/hasversions}}
+
+        <div class="alert alert-warning mt-3 mb-0" data-region="simgen-errorreport" hidden>
+            <strong>{{#str}}errorreport_title, mod_simgen{{/str}}</strong>
+            <p class="mb-1">{{#str}}errorreport_help, mod_simgen{{/str}}</p>
+            <pre class="mod-simgen-pre mod-simgen-scroll" data-region="errormessage"></pre>
+            {{#version}}
+                <form method="post" action="{{reviseformurl}}">
+                    <input type="hidden" name="id" value="{{cmid}}">
+                    <input type="hidden" name="version" value="{{id}}">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="prefill" value="">
+                    <button type="submit" class="btn btn-primary btn-sm">{{#str}}errorreport_fix, mod_simgen{{/str}}</button>
+                </form>
+            {{/version}}
+        </div>
+    </div>
+</div>

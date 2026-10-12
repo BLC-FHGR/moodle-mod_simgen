@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/simgen/db" VERSION="20261012" COMMENT="XMLDB file for Moodle mod_simgen"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="simgen" COMMENT="AI generated simulation activity instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Subject / topic"/>
+        <FIELD NAME="targetgroup" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Target group description"/>
+        <FIELD NAME="priorknowledge" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Prior knowledge of the target group"/>
+        <FIELD NAME="difficulty" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="intermediate" SEQUENCE="false"/>
+        <FIELD NAME="durationmin" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Planned working time in minutes"/>
+        <FIELD NAME="socialform" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="individual" SEQUENCE="false"/>
+        <FIELD NAME="simlanguage" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" SEQUENCE="false"/>
+        <FIELD NAME="learningoutcomes" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="simtype" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="auto" SEQUENCE="false"/>
+        <FIELD NAME="feedbackmode" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="immediate" SEQUENCE="false"/>
+        <FIELD NAME="requirements" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Additional wishes of the teacher"/>
+        <FIELD NAME="content" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Subject content entered by the teacher"/>
+        <FIELD NAME="contentformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="savestate" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Persist the progress of students"/>
+        <FIELD NAME="completionfinished" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Custom completion rule: simulation finished"/>
+        <FIELD NAME="minheight" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="600" SEQUENCE="false" COMMENT="Minimal height of the player in px"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Generation status"/>
+        <FIELD NAME="statusmessage" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="genrequested" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of the latest generation request"/>
+        <FIELD NAME="genstarted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp the running generation started"/>
+        <FIELD NAME="pendingfeedback" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Change request for the next generation"/>
+        <FIELD NAME="pendingbaseversion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Version to revise, 0 = generate from scratch"/>
+        <FIELD NAME="publishedversion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Version visible for students"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="simgen_versions" COMMENT="Generated or edited code versions of a simulation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="simgenid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="versionnum" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="codetype" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="react" SEQUENCE="false" COMMENT="react or html"/>
+        <FIELD NAME="sourcecode" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="css" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="prompttext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Prompt sent to the AI"/>
+        <FIELD NAME="rawresponse" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Response of the AI"/>
+        <FIELD NAME="revisionnote" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Change request or note for this version"/>
+        <FIELD NAME="origin" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="ai" SEQUENCE="false" COMMENT="ai, revision or manual"/>
+        <FIELD NAME="modelinfo" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="simgenid" TYPE="foreign" FIELDS="simgenid" REFTABLE="simgen" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="simgenid-versionnum" UNIQUE="true" FIELDS="simgenid, versionnum"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="simgen_states" COMMENT="Saved progress of users in a simulation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="simgenid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="versionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Version the state was saved with"/>
+        <FIELD NAME="statedata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON encoded state"/>
+        <FIELD NAME="completed" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="rawscore" TYPE="number" LENGTH="15" NOTNULL="false" SEQUENCE="false" DECIMALS="5"/>
+        <FIELD NAME="maxscore" TYPE="number" LENGTH="15" NOTNULL="false" SEQUENCE="false" DECIMALS="5"/>
+        <FIELD NAME="summary" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Result summary reported by the simulation"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecompleted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="simgenid" TYPE="foreign" FIELDS="simgenid" REFTABLE="simgen" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="simgenid-userid" UNIQUE="true" FIELDS="simgenid, userid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
