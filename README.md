@@ -48,6 +48,7 @@ Figuren werden serverseitig gespeichert      → local_ai_manager (Einsatzzweck 
 
 - **Persona-Prompts bleiben auf dem Server.** Die Simulation kennt nur ID, Name und Rolle; der Verlauf wird serverseitig gespeichert. Studierende können weder die Rolle umschreiben noch einen falschen Verlauf einschleusen.
 - **Signale** (von der KI pro Antwort eingeschätzt, z. B. Stimmung 1–5, Anliegen gelöst) steuern die Simulation: Stimmungsanzeige, nächste Phase, Debriefing.
+- **Gesprächsende:** Zusätzlich zu den Signalen der Figur fragt der Server bei jeder Antwort das eingebaute Signal `beendet` ab (Figur verabschiedet sich, lernende Person verabschiedet sich, Anliegen erledigt/abgelehnt). Dann wird `chat.done` true – genau wie beim Erreichen des Nachrichtenlimits. Lernende können ein Gespräch zudem mit `chat.end()` («Gespräch beenden») abschliessen. `maxTurns` ist damit eine Obergrenze, kein Soll.
 - **Grenzen (Kostenbremse):** max. Nachrichten pro Gespräch (Standard 20), max. Neustarts pro Gespräch (Standard 3) und max. Nachrichtenlänge (Standard 1000 Zeichen). Damit sind die KI-Anfragen pro Person und Figur auf Nachrichten × (Neustarts + 1) begrenzt; parallele Anfragen (z. B. zwei Tabs) werden gesperrt.
 - **Signale sind nicht fälschungssicher:** Lernende können versuchen, die KI zu einer bestimmten Einschätzung zu bewegen. Für Feedback und Steuerung gut geeignet, nicht für summative Bewertung.
 - **Neue Version = neues Gespräch:** Gespräche hängen an der Version. Nach dem Veröffentlichen einer neuen Version beginnen Lernende das Gespräch neu.
@@ -119,7 +120,8 @@ const [step, setStep] = useSimState('step', 0);
 // Live-Gespräch mit einer KI-Figur (nur Simulationstyp «Live-Gespräch»):
 const chat = useConversation('gast');
 // chat.messages, chat.send(text), chat.pending, chat.signals.stimmung, chat.turn, chat.maxTurns,
-// chat.done, chat.error, chat.ready, chat.reset()
+// chat.done (Limit erreicht ODER Gespräch natürlich beendet), chat.ended, chat.end(),
+// chat.error, chat.ready, chat.reset()
 
 SimBridge.complete({ score: 7, maxScore: 10, summary: 'Entscheidungen: …' }); // Abschluss melden
 SimBridge.ready.then((state) => { /* gespeicherter Zustand oder null */ });  // v. a. für HTML-Dokumente

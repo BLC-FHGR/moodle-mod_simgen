@@ -67,6 +67,13 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/simgen:converse',
     ],
+    'mod_simgen_end_conversation' => [
+        'classname' => \mod_simgen\external\end_conversation::class,
+        'description' => 'Ends the conversation of the current user with an AI persona.',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/simgen:converse',
+    ],
     'mod_simgen_get_status' => [
         'classname' => \mod_simgen\external\get_status::class,
         'description' => 'Returns the generation status of a simulation.',

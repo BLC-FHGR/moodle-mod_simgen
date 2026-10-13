@@ -46,6 +46,14 @@ class conversation {
     /** @var int maximum number of signals per persona */
     const MAX_SIGNALS = 10;
 
+    /** @var string built-in signal: the conversation came to a natural end (requested in every persona prompt) */
+    const END_SIGNAL = 'beendet';
+
+    /** @var string description of the built-in end signal for the AI */
+    const END_SIGNAL_DESCRIPTION = 'true, wenn das Gespräch zu Ende ist – du hast dich verabschiedet oder gehst weg, '
+        . 'die lernende Person hat sich verabschiedet bzw. das Gespräch beendet, oder dein Anliegen ist endgültig erledigt '
+        . 'oder abgelehnt und es gibt nichts mehr zu besprechen; sonst false';
+
     /**
      * Validates and normalises persona definitions (JSON string or decoded array).
      *
@@ -270,6 +278,11 @@ class conversation {
         }
         $turns = $record ? (int)$record->turncount : 0;
         $signals = self::decode_list($record->signaldata ?? null);
+        $ended = self::is_ended($record);
+        if (!isset($persona['signals'][self::END_SIGNAL])) {
+            // Built-in signal: exposed as "ended", not as a signal of the simulation.
+            unset($signals[self::END_SIGNAL]);
+        }
 
         return [
             'reply' => $reply,
@@ -277,8 +290,78 @@ class conversation {
             'signals' => self::encode((object)$signals),
             'turn' => $turns,
             'maxturns' => (int)$persona['maxturns'],
-            'done' => $turns >= (int)$persona['maxturns'],
+            'ended' => $ended,
+            // Done: message limit reached OR the conversation came to a natural end.
+            'done' => $ended || $turns >= (int)$persona['maxturns'],
         ];
+    }
+
+    /**
+     * Whether a conversation came to a natural end (persona said goodbye, learner ended it, ...).
+     *
+     * @param stdClass|null $record
+     * @return bool
+     */
+    public static function is_ended(?stdClass $record): bool {
+        $signals = self::decode_list($record->signaldata ?? null);
+        return ($signals[self::END_SIGNAL] ?? false) === true;
+    }
+
+    /**
+     * Signals the AI estimates after each answer: those of the persona plus the built-in end signal.
+     *
+     * @param array $persona
+     * @return array key => description
+     */
+    public static function signal_spec(array $persona): array {
+        $spec = $persona['signals'];
+        if (!isset($spec[self::END_SIGNAL])) {
+            $spec[self::END_SIGNAL] = self::END_SIGNAL_DESCRIPTION;
+        }
+        return $spec;
+    }
+
+    /**
+     * Ends a conversation on behalf of the learner (button "end conversation"), without an AI request.
+     *
+     * @param stdClass $simgen
+     * @param stdClass $version
+     * @param array $persona
+     * @param int $userid
+     * @return array see export()
+     */
+    public static function end(stdClass $simgen, stdClass $version, array $persona, int $userid): array {
+        global $DB;
+
+        $lock = self::lock((int)$simgen->id, $userid, $persona['id']);
+        try {
+            $record = self::get_record((int)$simgen->id, $userid, (int)$version->id, $persona['id']);
+            $signals = self::decode_list($record->signaldata ?? null);
+            $signals[self::END_SIGNAL] = true;
+            $now = time();
+            if ($record) {
+                $record->signaldata = self::encode((object)$signals);
+                $record->timemodified = $now;
+                $DB->update_record('simgen_conversations', $record);
+            } else {
+                $record = (object)[
+                    'simgenid' => $simgen->id,
+                    'userid' => $userid,
+                    'versionid' => $version->id,
+                    'personaid' => $persona['id'],
+                    'messagedata' => null,
+                    'signaldata' => self::encode((object)$signals),
+                    'turncount' => 0,
+                    'resetcount' => 0,
+                    'timecreated' => $now,
+                    'timemodified' => $now,
+                ];
+                $record->id = $DB->insert_record('simgen_conversations', $record);
+            }
+            return self::export($record, $persona);
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
@@ -310,7 +393,7 @@ class conversation {
         try {
             $record = self::get_record((int)$simgen->id, $userid, (int)$version->id, $persona['id']);
             $turns = $record ? (int)$record->turncount : 0;
-            if ($turns >= (int)$persona['maxturns']) {
+            if ($turns >= (int)$persona['maxturns'] || self::is_ended($record)) {
                 throw new moodle_exception('error_conversationfinished', 'mod_simgen');
             }
 
@@ -378,7 +461,7 @@ class conversation {
         $lock = self::lock((int)$simgen->id, $userid, $persona['id']);
         try {
             $record = self::get_record((int)$simgen->id, $userid, (int)$version->id, $persona['id']);
-            if (!$record || ((int)$record->turncount === 0 && empty($record->messagedata))) {
+            if (!$record || ((int)$record->turncount === 0 && empty($record->messagedata) && empty($record->signaldata))) {
                 // Nothing to reset.
                 return self::export($record, $persona);
             }
@@ -433,20 +516,18 @@ class conversation {
             $lines[] = $speaker . ': ' . str_replace("\n", ' ', (string)($m['text'] ?? ''));
         }
 
-        $statusrules = 'Schreibe ausschliesslich deine Antwort in der Rolle.';
-        if (!empty($persona['signals'])) {
-            $spec = [];
-            $example = [];
-            foreach ($persona['signals'] as $key => $description) {
-                $spec[] = '- ' . $key . ': ' . ($description !== '' ? $description : 'Einschätzung aus Sicht deiner Rolle');
-                $example[] = '"' . $key . '": <Wert>';
-            }
-            $statusrules = "## Einschätzung nach deiner Antwort\n"
-                . "Schätze nach deiner Antwort aus Sicht deiner Rolle folgende Werte ein:\n" . implode("\n", $spec) . "\n\n"
-                . "Schreibe als allerletzte Zeile genau eine Statuszeile in diesem Format (gültiges JSON in einer Zeile, "
-                . "Zahlen als Zahlen, ja/nein als true/false):\n"
-                . 'STATUS: {' . implode(', ', $example) . '}';
+        // Always at least the built-in end signal, so a natural end of the conversation is detected.
+        $spec = [];
+        $example = [];
+        foreach (self::signal_spec($persona) as $key => $description) {
+            $spec[] = '- ' . $key . ': ' . ($description !== '' ? $description : 'Einschätzung aus Sicht deiner Rolle');
+            $example[] = '"' . $key . '": <Wert>';
         }
+        $statusrules = "## Einschätzung nach deiner Antwort\n"
+            . "Schätze nach deiner Antwort aus Sicht deiner Rolle folgende Werte ein:\n" . implode("\n", $spec) . "\n\n"
+            . "Schreibe als allerletzte Zeile genau eine Statuszeile in diesem Format (gültiges JSON in einer Zeile, "
+            . "Zahlen als Zahlen, ja/nein als true/false):\n"
+            . 'STATUS: {' . implode(', ', $example) . '}';
 
         $none = '(keine Angabe)';
         return strtr(prompt_templates::CONVERSATION, [
@@ -487,7 +568,7 @@ class conversation {
             $last = end($matches);
             $decoded = json_decode($last[1][0], true);
             if (is_array($decoded)) {
-                foreach (array_keys($persona['signals']) as $key) {
+                foreach (array_keys(self::signal_spec($persona)) as $key) {
                     if (array_key_exists($key, $decoded)) {
                         $value = self::clean_signal($decoded[$key]);
                         if ($value !== null) {

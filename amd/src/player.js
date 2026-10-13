@@ -212,6 +212,7 @@ export const init = async(opts) => {
         signals: JSON.parse(result.signals || '{}'),
         turn: result.turn,
         maxTurns: result.maxturns,
+        ended: !!result.ended,
         done: !!result.done,
     });
 
@@ -223,6 +224,8 @@ export const init = async(opts) => {
             args.message = String(d.message || '');
         } else if (d.type === 'conversation-reset') {
             methodname = 'mod_simgen_reset_conversation';
+        } else if (d.type === 'conversation-end') {
+            methodname = 'mod_simgen_end_conversation';
         }
         call(methodname, args)
             .then((result) => send({type: 'response', requestId: d.requestId, ok: true, data: conversationResult(result)}))
@@ -288,6 +291,7 @@ export const init = async(opts) => {
             case 'conversation-load':
             case 'converse':
             case 'conversation-reset':
+            case 'conversation-end':
                 handleConversation(d);
                 break;
             case 'notify':

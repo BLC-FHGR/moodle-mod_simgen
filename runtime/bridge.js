@@ -345,6 +345,16 @@
          */
         resetConversation: function(personaId) {
             return request('conversation-reset', {personaId: resolveId(personaId)});
+        },
+
+        /**
+         * Ends the conversation with a persona (no further messages, done becomes true).
+         *
+         * @param {String} personaId
+         * @returns {Promise} {messages, signals, turn, maxTurns, ended, done}
+         */
+        endConversation: function(personaId) {
+            return request('conversation-end', {personaId: resolveId(personaId)});
         }
     };
 
@@ -555,17 +565,33 @@
             });
         }, [personaId]);
 
+        var end = R.useCallback(function() {
+            if (!persona || pendingRef.current) {
+                return Promise.resolve(null);
+            }
+            errorState[1](null);
+            return SimBridge.endConversation(personaId).then(function(result) {
+                setData(result);
+                return result;
+            }, function(err) {
+                errorState[1](err.message);
+                return null;
+            });
+        }, [personaId]);
+
         return {
             persona: persona ? {id: persona.id, name: persona.name, role: persona.role} : {id: personaId, name: personaId, role: ''},
             messages: data.messages || [],
             signals: data.signals || {},
             turn: data.turn || 0,
             maxTurns: data.maxTurns || 0,
+            ended: !!data.ended,
             done: !!data.done,
             ready: readyState[0],
             pending: pendingState[0],
             error: errorState[0],
             send: send,
+            end: end,
             reset: reset
         };
     }

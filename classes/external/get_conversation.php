@@ -95,7 +95,8 @@ class get_conversation extends external_api {
             'signals' => new external_value(PARAM_RAW, 'JSON object with the latest signals'),
             'turn' => new external_value(PARAM_INT, 'Number of learner messages'),
             'maxturns' => new external_value(PARAM_INT, 'Maximum number of learner messages'),
-            'done' => new external_value(PARAM_BOOL, 'Maximum reached'),
+            'ended' => new external_value(PARAM_BOOL, 'Conversation came to a natural end or was ended by the learner'),
+            'done' => new external_value(PARAM_BOOL, 'Conversation finished (ended or maximum reached)'),
         ]);
     }
 }

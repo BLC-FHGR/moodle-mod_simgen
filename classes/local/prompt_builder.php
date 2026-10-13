@@ -67,9 +67,15 @@ class prompt_builder {
         } else {
             $current = "```css\n" . ($version->css ?? '') . "\n```\n\n";
             if ($conversation) {
-                $personas = ['personas' => array_values(conversation::from_version($version))];
-                $current .= "```json\n" . json_encode($personas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-                    | JSON_UNESCAPED_SLASHES) . "\n```\n\n";
+                $personas = array_values(conversation::from_version($version));
+                if ($personas) {
+                    $current .= "```json\n" . json_encode(['personas' => $personas], JSON_PRETTY_PRINT
+                        | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n```\n\n";
+                } else {
+                    // Do not show an empty list - the model tends to copy it.
+                    $current .= "(Diese Version enthält noch keine Gesprächsfiguren und keine Live-Gespräche. Baue die "
+                        . "Simulation zu einer Live-Gesprächssimulation um und definiere die Figuren neu gemäss Schema.)\n\n";
+                }
             }
             $map['{{CURRENT_CODE}}'] = $current . "```jsx\n" . $version->sourcecode . "\n```";
         }
