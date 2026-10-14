@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<libraries>
+  <library>
+    <location>runtime/lib/katex</location>
+    <name>KaTeX</name>
+    <description>Math typesetting for the Formula building block (fonts embedded as data URIs in katex.min.css).</description>
+    <version>0.18.7</version>
+    <license>MIT</license>
+    <repository>https://github.com/KaTeX/KaTeX</repository>
+    <copyrights>
+      <copyright>2013-2020 Khan Academy and other contributors</copyright>
+    </copyrights>
+  </library>
+  <library>
+    <location>runtime/lib/jsxgraph</location>
+    <name>JSXGraph</name>
+    <description>Interactive geometry and function plotting for the MathBoard building block.</description>
+    <version>1.13.3</version>
+    <license>MIT</license>
+    <repository>https://github.com/jsxgraph/jsxgraph</repository>
+    <copyrights>
+      <copyright>2008-2026 Matthias Ehmann, Michael Gerhaeuser, Carsten Miller, Bianca Valentin, Andreas Walter, Alfred Wassermann, Peter Wilfahrt</copyright>
+    </copyrights>
+  </library>
+</libraries>
