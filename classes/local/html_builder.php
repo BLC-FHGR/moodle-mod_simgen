@@ -38,6 +38,23 @@ class html_builder {
     const SANDBOX = 'allow-scripts allow-forms allow-modals allow-downloads';
 
     /**
+     * @var array Libraries bundled in runtime/lib (math building blocks of bridge.js). They are only loaded if the
+     *     generated code uses them (pattern), so other simulations stay small.
+     */
+    const MATH_LIBRARIES = [
+        'katex' => [
+            'pattern' => '/\bFormula\b|\bkatex\b|useKatex/',
+            'styles' => ['katex/katex.min.css'],
+            'scripts' => ['katex/katex.min.js'],
+        ],
+        'jsxgraph' => [
+            'pattern' => '/\bMathBoard\b|\bJXG\b/',
+            'styles' => ['jsxgraph/jsxgraph.css'],
+            'scripts' => ['jsxgraph/jsxgraphcore.js'],
+        ],
+    ];
+
+    /**
      * Builds the complete document.
      *
      * @param stdClass $simgen instance record
@@ -68,6 +85,14 @@ class html_builder {
         foreach (self::library_urls($debug) as $url) {
             $crossorigin = self::origin($url) !== self::origin($CFG->wwwroot) ? ' crossorigin="anonymous"' : '';
             $libs .= '<script src="' . s($url) . '"' . $crossorigin . '></script>' . "\n";
+        }
+        foreach (self::math_libraries((string)$version->sourcecode) as $name) {
+            foreach (self::MATH_LIBRARIES[$name]['styles'] as $file) {
+                $libs .= '<link rel="stylesheet" href="' . s(self::bundled_url($file)) . '">' . "\n";
+            }
+            foreach (self::MATH_LIBRARIES[$name]['scripts'] as $file) {
+                $libs .= '<script src="' . s(self::bundled_url($file)) . '"></script>' . "\n";
+            }
         }
 
         $lang = s($simgen->simlanguage ?: 'de');
@@ -117,7 +142,8 @@ HTML;
             'sandbox ' . self::SANDBOX,
             "default-src 'none'",
             "script-src 'unsafe-inline' 'unsafe-eval' " . $scriptsrc,
-            "style-src 'unsafe-inline'",
+            // Stylesheets of the bundled libraries (KaTeX embeds its fonts as data: URIs).
+            "style-src 'unsafe-inline' " . self::origin($CFG->wwwroot),
             'img-src data: blob:',
             'font-src data:',
             'media-src data: blob:',
@@ -145,6 +171,33 @@ HTML;
             $urls[1] = str_replace('.production.min.js', '.development.js', $urls[1]);
         }
         return $urls;
+    }
+
+    /**
+     * Bundled libraries the generated code uses.
+     *
+     * @param string $source React source code
+     * @return string[] keys of MATH_LIBRARIES
+     */
+    public static function math_libraries(string $source): array {
+        $names = [];
+        foreach (self::MATH_LIBRARIES as $name => $library) {
+            if (preg_match($library['pattern'], $source)) {
+                $names[] = $name;
+            }
+        }
+        return $names;
+    }
+
+    /**
+     * URL of a file in runtime/lib (with the plugin version, so browsers reload it after an update).
+     *
+     * @param string $file path relative to runtime/lib
+     * @return string
+     */
+    private static function bundled_url(string $file): string {
+        global $CFG;
+        return $CFG->wwwroot . '/mod/simgen/runtime/lib/' . $file . '?v=' . (int)get_config('mod_simgen', 'version');
     }
 
     /**

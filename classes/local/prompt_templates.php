@@ -73,7 +73,7 @@ INHALTE>>>
 - Klares, ruhiges, modernes Design; responsive ab 360 px Breite; Kontraste nach WCAG 2.1 AA.
 - Alle Bedienelemente per Tastatur erreichbar, sichtbarer Fokus, sinnvolle Labels und aria-Attribute.
 - Informationen nie nur über Farbe vermitteln.
-- Grafiken als Inline-SVG oder Canvas. Keine externen Ressourcen (keine Bild-URLs, Webfonts, CDNs oder APIs).
+- Grafiken als Inline-SVG oder Canvas; Formeln und mathematische Graphen mit den Bausteinen aus den technischen Rahmenbedingungen. Keine externen Ressourcen (keine Bild-URLs, Webfonts, CDNs oder APIs).
 
 {{TECHNICAL_RULES}}
 EOT;
@@ -118,7 +118,7 @@ EOT;
 - Laufzeitumgebung: React 18 (globale Objekte `React` und `ReactDOM`) und Babel für JSX sind bereits geladen. Es gibt KEINEN Build-Schritt: keine import-/export-Anweisungen, kein npm, kein TypeScript.
 - Global verfügbar: useState, useEffect, useRef, useMemo, useCallback, useReducer, useContext, createContext, Fragment.
 - Definiere eine Hauptkomponente `function App() { … }`. Rendere sie NICHT selbst (kein ReactDOM.createRoot) – das übernimmt die Umgebung.
-- Keine weiteren Bibliotheken (kein Tailwind, kein Chart.js, kein D3, keine Icon-Fonts). Diagramme selbst mit SVG oder <canvas> zeichnen.
+- Keine weiteren Bibliotheken (kein Tailwind, kein Chart.js, kein D3, keine Icon-Fonts) ausser den unten beschriebenen Bausteinen für Formeln und mathematische Grafiken. Diagramme selbst mit SVG oder <canvas> zeichnen.
 - Kein fetch/XMLHttpRequest/WebSocket, kein localStorage/sessionStorage, keine Cookies – die Sandbox blockiert all das.
 - Kein alert()/prompt(): Rückmeldungen direkt in der Oberfläche anzeigen.
 - Styling ausschliesslich im separaten CSS-Block; alle Klassennamen mit dem Präfix `sim-`. Kein CSS-Framework.
@@ -126,8 +126,33 @@ EOT;
 {{SAVESTATE_RULES}}
 - Abschluss: Sobald die Lernenden die Simulation inhaltlich abgeschlossen haben, rufe einmalig `SimBridge.complete({ score, maxScore, summary })` auf. score und maxScore sind optionale Zahlen; summary ist ein kurzer Text mit den wichtigsten Ergebnissen bzw. Entscheidungen der lernenden Person (für die Lehrperson).
 - Robustheit: Der Code muss ohne Fehler laufen. Prüfe alle Variablennamen, schliesse alle JSX-Tags, verwende eindeutige `key`-Props in Listen, keine Platzhalter wie «// TODO» oder «…».
+{{MATH_RULES}}
 {{CONVERSATION_RULES}}
 {{OUTPUT_FORMAT}}
+EOT;
+
+    /** @var string Building blocks for formulas and math graphics (Formula and MathBoard in runtime/bridge.js). */
+    const MATH_RULES = <<<'EOT'
+
+## Formeln und mathematische Grafiken (global verfügbare Bausteine, nur bei Bedarf verwenden)
+- Formeln setzt du immer mit `<Formula tex="…" />` (LaTeX, gesetzt mit KaTeX), nie als Klartext wie «x^2» oder «sqrt(x)». Freistehende Formeln mit `display`. Einfache Backslashes genügen:
+  ```jsx
+  <p>Für den Einfeldträger gilt <Formula tex="M_{max} = \frac{q \cdot l^2}{8}" />.</p>
+  <Formula display tex={`\sigma = ${sigma.toFixed(1)}\,\text{N/mm}^2`} />
+  ```
+  Formeln in Datenstrukturen legst du unter dem Schlüssel `tex` ab (z. B. `{ name: 'Moment', tex: 'M = F \cdot a' }`) und zeigst sie mit `<Formula tex={item.tex} />` an.
+- Interaktive Funktionsgraphen, Geometrie und Vektoren zeichnest du mit `<MathBoard>` (JSXGraph, `board` hat die übliche JSXGraph-API):
+  ```jsx
+  <MathBoard boundingBox={[-5, 5, 5, -5]} height={360} deps={[a, b]} title="Graph der Funktion f"
+    draw={(board) => {
+      board.create('functiongraph', [(x) => a * x * x + b], { strokeColor: '#0f6cbf', strokeWidth: 3 });
+    }} />
+  ```
+  - `boundingBox` ist [xmin, ymax, xmax, ymin]. `draw(board, handles)` zeichnet alles, was vom React-Zustand abhängt, und wird automatisch neu gezeichnet, sobald sich ein Wert in `deps` ändert (die alten Elemente werden vorher entfernt). Nimm alle in draw verwendeten Zustandswerte in `deps` auf.
+  - Ziehbare Punkte erstellst du in `setup={(board) => { const P = board.create('point', [1, 2], { name: 'P' }); return { P }; }}`. setup wird einmal aufgerufen; der Rückgabewert steht in draw als `handles` zur Verfügung. Elemente, die von einem ziehbaren Punkt abhängen, definierst du mit Funktionen, z. B. `[() => P.X(), 0]` – JSXGraph aktualisiert sie selbst. Werte meldest du mit `P.on('drag', () => setX(P.X()))` an React; solche Werte gehören nicht in deps.
+  - Weitere Props: `axis` (Standard true), `grid`, `keepAspectRatio`, `title` (kurze Beschreibung für Screenreader). Rufe nie selbst JXG.JSXGraph.initBoard auf und vergib keine ids.
+  - Schieberegler, Eingabefelder und Erklärungen gehören in die React-Oberfläche neben das Board, nicht ins Board.
+- Andere Grafiken (Diagramme, technische Skizzen, Schaubilder) zeichnest du weiterhin selbst mit SVG.
 EOT;
 
     /** @var string Output format of React simulations. */

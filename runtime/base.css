@@ -61,3 +61,17 @@ button, input, select, textarea {
     color: #58151c;
     cursor: pointer;
 }
+/* Math building blocks (Formula, MathBoard). */
+.simgen-formula-display {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.jxgbox.simgen-board { /* jsxgraph.css is loaded after this file */
+    border-color: #c4c8cc;
+    border-radius: 6px;
+}
+.jxgbox.simgen-board :focus-visible {
+    outline: 3px solid #0f6cbf;
+    outline-offset: 2px;
+}

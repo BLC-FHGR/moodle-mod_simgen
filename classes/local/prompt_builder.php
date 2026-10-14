@@ -122,6 +122,7 @@ class prompt_builder {
         }
         return strtr(prompt_templates::TECHNICAL_REACT, [
             '{{SAVESTATE_RULES}}' => $savestate ? prompt_templates::SAVESTATE_ON : prompt_templates::SAVESTATE_OFF,
+            '{{MATH_RULES}}' => prompt_templates::MATH_RULES,
             '{{CONVERSATION_RULES}}' => $conversation ? prompt_templates::CONVERSATION_RULES : '',
             '{{OUTPUT_FORMAT}}' => $conversation ? prompt_templates::OUTPUT_REACT_CONVERSATION
                 : prompt_templates::OUTPUT_REACT,

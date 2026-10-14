@@ -5,6 +5,7 @@
  * This file is inlined into every simulation document by \mod_simgen\local\html_builder. It provides:
  *  - window.SimBridge: load/save progress and report completion (via postMessage to the Moodle page),
  *  - window.useSimState(key, initial): a persisted variant of React.useState,
+ *  - window.Formula and window.MathBoard: math building blocks (KaTeX and JSXGraph, bundled in runtime/lib),
  *  - error handling (overlay + report to the Moodle page so teachers can let the AI fix the error),
  *  - automatic height reporting and
  *  - JSX compilation (Babel) and mounting of the generated React component "App".
@@ -619,9 +620,333 @@
         return pair;
     }
 
+    // ------------------------------------------------------------------------------------------------------------
+    // Math building blocks: <Formula> (KaTeX) and <MathBoard> (JSXGraph). The libraries are bundled with the plugin
+    // and only loaded if the generated code uses these names (\mod_simgen\local\html_builder::MATH_LIBRARIES).
+    // ------------------------------------------------------------------------------------------------------------
+
+    var TEX_COMMANDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'varepsilon', 'zeta', 'eta', 'theta', 'vartheta',
+        'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'pi', 'rho', 'sigma', 'tau', 'upsilon', 'phi', 'varphi', 'chi', 'psi',
+        'omega', 'Gamma', 'Delta', 'Theta', 'Lambda', 'Xi', 'Pi', 'Sigma', 'Phi', 'Psi', 'Omega', 'cdot', 'times', 'div',
+        'pm', 'mp', 'leq', 'geq', 'neq', 'approx', 'infty', 'sqrt', 'frac', 'dfrac', 'tfrac', 'sum', 'int', 'prod', 'lim',
+        'sin', 'cos', 'tan', 'ln', 'log', 'exp', 'text', 'mathrm', 'left', 'right', 'partial', 'nabla', 'Rightarrow',
+        'rightarrow', 'quad', 'vec', 'overline', 'degree'];
+    // Not after a control character: "\beta" became "\x08eta", which is repaired below.
+    var TEX_WORDS = new RegExp('(^|[^A-Za-z\\f\\x08\\x0B\\t\\r\\n])(' + TEX_COMMANDS.join('|') + ')(?![A-Za-z])', 'g');
+
+    /**
+     * Repairs LaTeX that went through a JavaScript string with single backslashes: "\frac" contains a form feed,
+     * "\sigma" becomes "sigma". Literals in tex attributes are already repaired when compiling (texPlugin); this
+     * covers values computed at runtime.
+     *
+     * @param {String} tex
+     * @returns {String}
+     */
+    function repairTex(tex) {
+        tex = String(tex);
+        if (tex.indexOf('\\') === -1) {
+            // All backslashes were lost.
+            tex = tex.replace(TEX_WORDS, '$1\\$2');
+        }
+        return tex
+            .replace(/\f/g, '\\f')
+            .replace(/\x08/g, '\\b')
+            .replace(/\x0B/g, '\\v')
+            .replace(/\t(?=[a-z])/g, '\\t')
+            .replace(/\r(?=[a-z])/g, '\\r')
+            .replace(/\n(?=(u|eq|e|abla|ot|eg|ewline|leq|geq|mid|i|ni|parallel|subseteq|exists)(?![A-Za-z]))/g, '\\n');
+    }
+
+    /**
+     * Content of a string literal as the author meant it for LaTeX: "\frac" and "\\frac" both become \frac.
+     *
+     * @param {String} raw source text between the quotes
+     * @returns {String}
+     */
+    function texFromRaw(raw) {
+        return raw.replace(/\\u([0-9a-fA-F]{4})|\\([nrt])(?![A-Za-z])|\\\r?\n|\\([\\'"`])/g, function(m, hex, ctrl, quote) {
+            if (hex) {
+                return String.fromCharCode(parseInt(hex, 16));
+            }
+            if (ctrl) {
+                return ctrl === 'n' ? '\n' : (ctrl === 't' ? '\t' : '');
+            }
+            return quote || '';
+        });
+    }
+
+    var TEX_KEYS = /^(tex|latex|formula|formel)$/i;
+
+    /**
+     * Babel plugin: repairs single backslashes in string literals that hold LaTeX (attribute tex={…} and object
+     * properties named tex/latex/formula). Plain JSX attributes (tex="\frac…") keep backslashes anyway.
+     *
+     * @param {Object} babel
+     * @returns {Object}
+     */
+    function texPlugin(babel) {
+        var t = babel.types;
+
+        function fixString(path) {
+            var node = path.node;
+            if (node.simgenTex || !node.extra || typeof node.extra.raw !== 'string') {
+                return;
+            }
+            var raw = node.extra.raw.slice(1, -1);
+            if (raw.indexOf('\\') === -1) {
+                return;
+            }
+            var literal = t.stringLiteral(texFromRaw(raw));
+            literal.simgenTex = true;
+            path.replaceWith(literal);
+        }
+
+        function fixTemplate(path) {
+            if (path.parentPath.isTaggedTemplateExpression()) {
+                // String.raw`…` is already correct.
+                return;
+            }
+            path.node.quasis.forEach(function(quasi) {
+                if (quasi.simgenTex || quasi.value.raw.indexOf('\\') === -1) {
+                    return;
+                }
+                var cooked = texFromRaw(quasi.value.raw);
+                quasi.value = {
+                    raw: cooked.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${'),
+                    cooked: cooked
+                };
+                quasi.simgenTex = true;
+            });
+        }
+
+        function fixExpression(path) {
+            if (!path || !path.node) {
+                return;
+            }
+            if (path.isStringLiteral()) {
+                fixString(path);
+            } else if (path.isTemplateLiteral()) {
+                fixTemplate(path);
+            } else {
+                path.traverse({
+                    StringLiteral: fixString,
+                    TemplateLiteral: fixTemplate
+                });
+            }
+        }
+
+        return {
+            visitor: {
+                JSXAttribute: function(path) {
+                    var name = path.node.name && path.node.name.name;
+                    if (typeof name === 'string' && TEX_KEYS.test(name) && path.get('value').isJSXExpressionContainer()) {
+                        fixExpression(path.get('value.expression'));
+                    }
+                },
+                ObjectProperty: function(path) {
+                    var key = path.node.key;
+                    var name = t.isIdentifier(key) ? key.name : (t.isStringLiteral(key) ? key.value : null);
+                    if (!path.node.computed && name && TEX_KEYS.test(name)) {
+                        fixExpression(path.get('value'));
+                    }
+                }
+            }
+        };
+    }
+
+    var reportedTex = {};
+
+    /**
+     * Renders LaTeX with KaTeX.
+     *
+     * @param {String} tex
+     * @param {Boolean} display
+     * @returns {Object} {html, error} (html is null if KaTeX is not available)
+     */
+    function renderTex(tex, display) {
+        var K = window.katex;
+        if (!K) {
+            return {html: null, error: null};
+        }
+        var options = {displayMode: display, throwOnError: true, strict: 'ignore', trust: false};
+        try {
+            return {html: K.renderToString(tex, options), error: null};
+        } catch (e) {
+            options.throwOnError = false;
+            var html = null;
+            try {
+                html = K.renderToString(tex, options);
+            } catch (e2) {
+                html = null;
+            }
+            return {html: html, error: new Error('<Formula tex="' + tex + '">: ' + describe(e))};
+        }
+    }
+
+    /**
+     * Formula (LaTeX): <Formula tex="\frac{a}{b}" /> inline, <Formula display tex="…" /> as a block.
+     *
+     * @param {Object} props {tex, display, block, className, style}
+     * @returns {Object} React element
+     */
+    function Formula(props) {
+        var R = window.React;
+        var tex = props.tex !== undefined && props.tex !== null ? props.tex : props.children;
+        tex = repairTex(Array.isArray(tex) ? tex.join('') : (tex === undefined || tex === null ? '' : tex));
+        var display = !!(props.display || props.block);
+        var result = R.useMemo(function() {
+            return renderTex(tex, display);
+        }, [tex, display]);
+
+        R.useEffect(function() {
+            if (result.error && !reportedTex[tex]) {
+                // Report once (visible to the teacher, who can let the AI fix it).
+                reportedTex[tex] = true;
+                showError(STR.errortitle, result.error, false);
+            }
+        }, [result]);
+
+        var attributes = {
+            className: 'simgen-formula' + (display ? ' simgen-formula-display' : '') + (props.className ? ' ' + props.className : ''),
+            style: props.style
+        };
+        if (result.html === null) {
+            return R.createElement(display ? 'div' : 'span', attributes, R.createElement('code', null, tex));
+        }
+        attributes.dangerouslySetInnerHTML = {__html: result.html};
+        return R.createElement(display ? 'div' : 'span', attributes);
+    }
+
+    var boardCounter = 0;
+
+    /**
+     * Interactive JSXGraph board.
+     *
+     * - setup(board): called once (draggable points, static elements); its return value is passed to draw.
+     * - draw(board, handles): called after mounting and whenever deps change (every render without deps); the
+     *   elements created by the previous call are removed first.
+     *
+     * @param {Object} props {boundingBox, axis, grid, keepAspectRatio, navigation, height, aspectRatio, title,
+     *     description, attributes, setup, draw, deps, className, style}
+     * @returns {Object} React element
+     */
+    function MathBoard(props) {
+        var R = window.React;
+        var idRef = R.useRef(null);
+        if (idRef.current === null) {
+            idRef.current = 'simgen-board-' + (++boardCounter);
+        }
+        var boardRef = R.useRef(null);
+        var handlesRef = R.useRef(undefined);
+        var drawnRef = R.useRef([]);
+        var propsRef = R.useRef(props);
+        propsRef.current = props;
+
+        R.useEffect(function() {
+            var JXG = window.JXG;
+            if (!JXG) {
+                showError(STR.libsfailed, new Error('JSXGraph is not available.'), false);
+                return undefined;
+            }
+            var p = propsRef.current;
+            var attributes = {
+                boundingbox: p.boundingBox || p.boundingbox || [-5, 5, 5, -5],
+                axis: p.axis === undefined ? true : !!p.axis,
+                grid: !!p.grid,
+                keepAspectRatio: !!p.keepAspectRatio,
+                showCopyright: false,
+                showNavigation: !!p.navigation,
+                title: p.title || '',
+                description: p.description || ''
+            };
+            Object.keys(p.attributes || {}).forEach(function(k) {
+                attributes[k] = p.attributes[k];
+            });
+            var board;
+            try {
+                board = JXG.JSXGraph.initBoard(idRef.current, attributes);
+            } catch (e) {
+                showError(STR.errortitle, e, false);
+                return undefined;
+            }
+            boardRef.current = board;
+            if (typeof p.setup === 'function') {
+                board.suspendUpdate();
+                try {
+                    handlesRef.current = p.setup(board);
+                } catch (e) {
+                    showError(STR.errortitle, e, false);
+                } finally {
+                    board.unsuspendUpdate();
+                }
+            }
+            return function() {
+                boardRef.current = null;
+                drawnRef.current = [];
+                handlesRef.current = undefined;
+                try {
+                    JXG.JSXGraph.freeBoard(board);
+                } catch (e) {
+                    // Already gone.
+                }
+            };
+        }, []);
+
+        R.useEffect(function() {
+            var board = boardRef.current;
+            var p = propsRef.current;
+            var draw = typeof p.draw === 'function' ? p.draw : (typeof p.children === 'function' ? p.children : null);
+            if (!board || !draw) {
+                return;
+            }
+            board.suspendUpdate();
+            try {
+                drawnRef.current.slice().reverse().forEach(function(element) {
+                    if (board.objects[element.id]) {
+                        board.removeObject(element);
+                    }
+                });
+                drawnRef.current = [];
+                var before = {};
+                Object.keys(board.objects).forEach(function(id) {
+                    before[id] = true;
+                });
+                try {
+                    draw(board, handlesRef.current);
+                } finally {
+                    drawnRef.current = Object.keys(board.objects).filter(function(id) {
+                        return !before[id];
+                    }).map(function(id) {
+                        return board.objects[id];
+                    });
+                }
+            } catch (e) {
+                showError(STR.errortitle, e, false);
+            } finally {
+                board.unsuspendUpdate();
+            }
+        }, Array.isArray(props.deps) ? props.deps : undefined);
+
+        var style = {width: '100%', height: typeof props.height === 'number' ? props.height + 'px' : (props.height || '360px')};
+        if (props.aspectRatio) {
+            style.height = 'auto';
+            style.aspectRatio = String(props.aspectRatio);
+        }
+        Object.keys(props.style || {}).forEach(function(k) {
+            style[k] = props.style[k];
+        });
+        return R.createElement('div', {
+            id: idRef.current,
+            className: 'jxgbox simgen-board' + (props.className ? ' ' + props.className : ''),
+            style: style
+        });
+    }
+
     window.SimBridge = SimBridge;
     window.useSimState = useSimState;
     window.useConversation = useConversation;
+    window.Formula = Formula;
+    window.MathBoard = MathBoard;
 
     // ------------------------------------------------------------------------------------------------------------
     // Handshake with the Moodle page.
@@ -757,6 +1082,7 @@
         try {
             return B.transform(src, {
                 presets: [['react', {runtime: 'classic'}]],
+                plugins: [texPlugin],
                 filename: 'simulation.jsx',
                 sourceType: 'script'
             }).code;
@@ -765,6 +1091,7 @@
             try {
                 return B.transform(src, {
                     presets: [['typescript', {isTSX: true, allExtensions: true}], ['react', {runtime: 'classic'}]],
+                    plugins: [texPlugin],
                     filename: 'simulation.tsx',
                     sourceType: 'script'
                 }).code;

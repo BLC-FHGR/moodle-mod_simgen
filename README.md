@@ -31,6 +31,7 @@ Studierende ◄──── sandboxed iframe (sim.php) ◄──── veröffen
 - Backup/Restore (Kurskopie ins nächste Semester), Kurs-Reset, Privacy-API, Events.
 - **Maximale Bearbeitungszeit** (Standard 60 Minuten, einstellbar): verhindert Briefings, die das Modell überfordern.
 - **Live-Gespräch mit KI-Figuren** (Simulationstyp, ab 0.2): siehe unten.
+- **Formeln und mathematische Grafiken** (ab 0.3): KaTeX und JSXGraph sind im Plugin enthalten, siehe unten.
 
 ## Live-Gespräch mit KI-Figuren (ab Version 0.2)
 
@@ -60,6 +61,20 @@ Figuren werden serverseitig gespeichert      → local_ai_manager (Einsatzzweck 
 2. Im KI-Manager diesem Einsatzzweck für die Rolle der Studierenden (meist «base role») ein Modell zuweisen und ein sinnvolles Kontingent setzen.
 3. Studierende brauchen `local/ai_manager:use`; falls im KI-Manager Nutzungsbedingungen aktiviert sind, müssen sie diese einmal bestätigen.
 
+## Formeln und mathematische Grafiken (ab Version 0.3)
+
+Für Mathematik, Statik, Physik usw. stellt die Runtime zwei Bausteine bereit, die die KI im Prompt erklärt bekommt (`prompt_templates::MATH_RULES`):
+
+- **`<Formula tex="…" />`** setzt LaTeX mit [KaTeX](https://katex.org) (inline, mit `display` als eigener Block). Fehlerhaftes LaTeX lässt die Simulation nicht abstürzen: Die Formel erscheint rot und der Fehler wird gemeldet («Fehler von der KI beheben lassen»).
+- **`<MathBoard>`** zeichnet interaktive Grafiken mit [JSXGraph](https://jsxgraph.org) (Funktionsgraphen, Geometrie, Vektoren, ziehbare Punkte). Auf- und Abbau, Neuzeichnen bei Zustandsänderungen und Grössenanpassung übernimmt der Baustein.
+
+Umsetzung:
+
+- Die Bibliotheken liegen in `runtime/lib/` (KaTeX 0.18.7, JSXGraph 1.13.3, siehe `thirdpartylibs.xml`) und werden von Moodle selbst ausgeliefert – kein CDN, keine externen Anfragen. Die KaTeX-Schriften sind als `data:`-URIs ins Stylesheet eingebettet, weil Schriftdateien aus der Sandbox (opaker Origin) sonst an CORS scheitern.
+- Geladen werden sie nur, wenn der Code `Formula` bzw. `MathBoard` verwendet (`html_builder::MATH_LIBRARIES`); andere Simulationen bleiben gleich schlank.
+- Sprachmodelle schreiben LaTeX in JavaScript-Strings oft mit einfachen Backslashes (`"\frac"` enthält dann ein Steuerzeichen). Beim Kompilieren repariert ein Babel-Plugin solche Strings im Attribut `tex={…}` und in Objekt-Schlüsseln `tex`/`latex`/`formula`; Werte aus anderen Variablen werden zur Laufzeit so gut wie möglich repariert.
+- Bibliotheken aktualisieren: neue Version von npm holen, `katex.min.js` und `jsxgraphcore.js` ersetzen, die Schriften aus `katex/dist/fonts/*.woff2` wieder als `data:`-URIs in `katex.min.css` einbetten und `thirdpartylibs.xml` anpassen.
+
 ## Installation
 
 1. Ordner `simgen` nach `<moodle>/mod/simgen` kopieren (ab Moodle 5.1: `<moodle>/public/mod/simgen`).
@@ -87,7 +102,7 @@ Hinweis: `local_ai_manager` wandelt die Antwort von `singleprompt`/`chat` in HTM
 - **Prompt-Vorlagen** (das «Prompt-Gerüst») für Generierung und Überarbeitung, mit Platzhaltern wie `{{TARGETGROUP}}`, `{{LEARNINGOUTCOMES}}`, `{{CONTENT}}` usw. Der technische Laufzeit-Vertrag (`{{TECHNICAL_RULES}}`) ist nicht editierbar und wird angehängt, falls er fehlt. Standardvorlagen: `classes/local/prompt_templates.php`.
 - **Maximale Materiallänge** (Standard 30 000 Zeichen): an das Kontextfenster des Modells anpassen.
 - **pdftotext**-Pfad (optional, sonst Ghostscript `$CFG->pathtogs`) für PDF-Uploads.
-- **Laufzeit-Bibliotheken**: React 18.3.1, ReactDOM 18.3.1, Babel standalone 7.26.10 – standardmässig von jsDelivr.
+- **Laufzeit-Bibliotheken**: React 18.3.1, ReactDOM 18.3.1, Babel standalone 7.26.10 – standardmässig von jsDelivr. KaTeX und JSXGraph sind im Plugin enthalten und brauchen keine Einstellung.
 
 ### Bibliotheken lokal hosten (Datenschutz)
 
@@ -104,7 +119,7 @@ Standardmässig laden die Browser der Studierenden React/Babel von `cdn.jsdelivr
 KI-generierter Code wird **nie** im Moodle-Kontext ausgeführt:
 
 - Auslieferung über `sim.php` mit `Content-Security-Policy: sandbox allow-scripts …` (ohne `allow-same-origin`) **und** `sandbox`-Attribut am iframe → das Dokument hat einen *opaken Origin*: kein Zugriff auf Moodle-Cookies, Session, DOM oder APIs – auch nicht, wenn `sim.php` direkt geöffnet wird.
-- `connect-src 'none'`, `form-action 'none'`, Bilder nur `data:`/`blob:` → der Code kann keine Daten nach aussen senden.
+- `connect-src 'none'`, `form-action 'none'`, Bilder nur `data:`/`blob:` → der Code kann keine Daten nach aussen senden. Stylesheets sind nur inline und von der eigenen Moodle-Adresse erlaubt (für KaTeX/JSXGraph), Schriften nur als `data:`.
 - Gespeichert wird ausschliesslich über die Moodle-Seite (`amd/src/player.js`), immer nur für die angemeldete Person und die aktuelle Aktivität, mit Grössenlimit und JSON-Validierung.
 - Studierende erhalten nur veröffentlichte Versionen; Entwürfe sieht nur, wer `mod/simgen:manage` hat (RISK_XSS).
 - Das Briefing enthält keine Studierendendaten. Hinweis in der Maske: keine Personendaten eingeben.
@@ -126,9 +141,15 @@ const chat = useConversation('gast');
 SimBridge.complete({ score: 7, maxScore: 10, summary: 'Entscheidungen: …' }); // Abschluss melden
 SimBridge.ready.then((state) => { /* gespeicherter Zustand oder null */ });  // v. a. für HTML-Dokumente
 SimBridge.set('key', value); SimBridge.get('key', fallback);                  // ohne React
+
+// Formeln (KaTeX) und interaktive Grafiken (JSXGraph):
+<Formula tex="M_{max} = \frac{q \cdot l^2}{8}" />                         // inline, mit display als Block
+<MathBoard boundingBox={[-5, 5, 5, -5]} height={360} deps={[a]}
+  setup={(board) => ({ P: board.create('point', [1, 1]) })}               // einmal: ziehbare Punkte usw.
+  draw={(board, { P }) => board.create('functiongraph', [(x) => a * x * x])} /> // bei jeder Änderung von deps
 ```
 
-Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback`, `useReducer`, `useContext`, `createContext`, `Fragment`. Die Komponente muss `App` heissen und wird von der Runtime gerendert. `import`/`export`-Zeilen, die Modelle trotzdem oft schreiben, werden automatisch entfernt.
+Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useMemo`, `useCallback`, `useReducer`, `useContext`, `createContext`, `Fragment`, `Formula`, `MathBoard`. Die Komponente muss `App` heissen und wird von der Runtime gerendert. `import`/`export`-Zeilen, die Modelle trotzdem oft schreiben, werden automatisch entfernt.
 
 ## Entwicklung
 
