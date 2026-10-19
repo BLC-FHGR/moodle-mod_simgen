@@ -109,3 +109,34 @@ textarea.mod-simgen-code {
     white-space: pre-wrap;
     font-size: 0.875rem;
 }
+
+textarea.mod-simgen-wrap {
+    white-space: pre-wrap;
+}
+
+.mod-simgen-guide {
+    max-width: 60rem;
+}
+
+.mod-simgen-guide table {
+    margin-bottom: 1rem;
+}
+
+.mod-simgen-guide table th,
+.mod-simgen-guide table td {
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.5rem;
+    vertical-align: top;
+}
+
+.mod-simgen-guide blockquote {
+    border-left: 3px solid #0f6cbf;
+    padding-left: 0.75rem;
+    color: #495057;
+}
+
+@media print {
+    .mod-simgen-noprint {
+        display: none !important;
+    }
+}

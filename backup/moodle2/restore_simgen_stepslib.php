@@ -78,6 +78,13 @@ class restore_simgen_activity_structure_step extends restore_activity_structure_
         $oldid = $data->id;
         $data->simgenid = $this->get_new_parentid('simgen');
         $data->userid = (int)$this->get_mappingid('user', $data->userid, 0);
+        // A guide that was being generated during the backup is not generated in the new course.
+        $data->guide = $data->guide ?? null;
+        $data->guidestatus = trim((string)$data->guide) !== '' ? generator::STATUS_READY : generator::STATUS_NONE;
+        $data->guidemessage = '';
+        $data->guiderequested = 0;
+        $data->guidestarted = 0;
+        $data->guidemodified = (int)($data->guidemodified ?? 0);
         $newid = $DB->insert_record('simgen_versions', $data);
         $this->set_mapping('simgen_version', $oldid, $newid);
     }

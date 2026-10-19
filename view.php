@@ -27,6 +27,7 @@ require_once(__DIR__ . '/lib.php');
 
 use mod_simgen\local\ai_status;
 use mod_simgen\local\generator;
+use mod_simgen\local\guide_generator;
 use mod_simgen\local\html_builder;
 
 $id = required_param('id', PARAM_INT);
@@ -49,8 +50,13 @@ if ($canmanage && $action !== '') {
         $version = $DB->get_record('simgen_versions', ['id' => $versionid, 'simgenid' => $simgen->id], '*', MUST_EXIST);
         $DB->update_record('simgen', (object)['id' => $simgen->id, 'publishedversion' => $version->id,
             'timemodified' => time()]);
-        redirect(new moodle_url($url, ['version' => $version->id]),
-            get_string('published', 'mod_simgen', $version->versionnum), null, \core\output\notification::NOTIFY_SUCCESS);
+        // The guide describes the finished simulation: create it now if the version has none yet.
+        $message = get_string('published', 'mod_simgen', $version->versionnum);
+        if (guide_generator::queue_on_publish($version, (int)$USER->id)) {
+            $message .= ' ' . get_string('guide_queuedonpublish', 'mod_simgen');
+        }
+        redirect(new moodle_url($url, ['version' => $version->id]), $message, null,
+            \core\output\notification::NOTIFY_SUCCESS);
     } else if ($action === 'unpublish') {
         $DB->set_field('simgen', 'publishedversion', 0, ['id' => $simgen->id]);
         redirect(new moodle_url($url, ['version' => $versionid]), get_string('unpublished', 'mod_simgen'), null,
@@ -160,6 +166,18 @@ if ($canmanage) {
         $panel['reviseurl'] = (new moodle_url('/mod/simgen/revise.php', $versionparams))->out(false);
         $panel['editcodeurl'] = (new moodle_url('/mod/simgen/editcode.php', $versionparams))->out(false);
         $panel['downloadurl'] = (new moodle_url('/mod/simgen/sim.php', $versionparams + ['download' => 1]))->out(false);
+
+        // Facilitator guide of this version.
+        guide_generator::check_stale($current);
+        $guidestatus = (int)$current->guidestatus;
+        $panel['guideurl'] = (new moodle_url('/mod/simgen/guide.php', $versionparams))->out(false);
+        if (in_array($guidestatus, [generator::STATUS_PENDING, generator::STATUS_GENERATING], true)) {
+            $panel['guidebadge'] = get_string('guide_badge_running', 'mod_simgen');
+        } else if ($guidestatus === generator::STATUS_ERROR) {
+            $panel['guidebadge'] = get_string('guide_badge_error', 'mod_simgen');
+        } else if (trim((string)$current->guide) === '') {
+            $panel['guidebadge'] = get_string('guide_badge_none', 'mod_simgen');
+        }
     }
     $panel['reporturl'] = (new moodle_url('/mod/simgen/report.php', ['id' => $cm->id]))->out(false);
 
@@ -205,7 +223,15 @@ if ($versionid) {
     }
 
     // Live conversations: learners must know that their messages are sent to the AI and visible to teachers.
-    $shownversion = $DB->get_record('simgen_versions', ['id' => $versionid], 'id, codetype, personas');
+    $shownversion = $DB->get_record('simgen_versions', ['id' => $versionid], 'id, codetype, personas, guide');
+
+    // Teachers without the management panel (e.g. non-editing teachers) reach the guide of the published version here.
+    if (!$canmanage && $shownversion && trim((string)$shownversion->guide) !== ''
+            && has_capability('mod/simgen:viewguide', $context)) {
+        echo html_writer::div(html_writer::link(new moodle_url('/mod/simgen/guide.php', ['id' => $cm->id]),
+            get_string('guide_open', 'mod_simgen'), ['class' => 'btn btn-secondary btn-sm']), 'mb-2');
+    }
+
     if ($shownversion && \mod_simgen\local\conversation::from_version($shownversion)) {
         echo $OUTPUT->notification(get_string('conversation_privacynotice', 'mod_simgen'),
             \core\output\notification::NOTIFY_INFO, false);

@@ -84,6 +84,17 @@ $capabilities = [
         ],
     ],
 
+    // Read the facilitator guide (contains the solution, so not for students).
+    'mod/simgen:viewguide' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+
     // See progress and results of all participants.
     'mod/simgen:viewreports' => [
         'riskbitmask' => RISK_PERSONAL,

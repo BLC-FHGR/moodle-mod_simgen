@@ -111,6 +111,37 @@ class response_parser {
     }
 
     /**
+     * Parses the AI response of a facilitator guide.
+     *
+     * The guide is requested as one Markdown code block, because local_ai_manager converts the answer to HTML and
+     * the code block keeps the Markdown source intact. Without a block, the answer itself is used (Markdown or the
+     * HTML of local_ai_manager; both are rendered with FORMAT_MARKDOWN, which keeps HTML).
+     *
+     * @param string $content response content of local_ai_manager
+     * @return string guide in Markdown
+     * @throws moodle_exception if the response is empty
+     */
+    public static function parse_guide(string $content): string {
+        $guide = '';
+        foreach (self::extract_blocks($content) as $block) {
+            if (in_array($block['lang'], ['markdown', 'md', ''], true)
+                    && \core_text::strlen($block['code']) > \core_text::strlen($guide)) {
+                $guide = $block['code'];
+            }
+        }
+        // A short block is probably an example inside an unfenced answer, not the guide.
+        $plain = html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if (\core_text::strlen(trim($guide)) < \core_text::strlen(trim($plain)) / 2) {
+            $guide = $content;
+        }
+        $guide = trim($guide);
+        if ($guide === '') {
+            throw new moodle_exception('error_noguide', 'mod_simgen');
+        }
+        return $guide;
+    }
+
+    /**
      * Finds all code blocks.
      *
      * @param string $content

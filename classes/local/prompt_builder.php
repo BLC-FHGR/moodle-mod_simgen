@@ -31,6 +31,9 @@ class prompt_builder {
     /** @var string Placeholder for the technical rules. */
     const PLACEHOLDER_TECHNICAL = '{{TECHNICAL_RULES}}';
 
+    /** @var int maximum length of the material in the guide prompt (the code is sent as well) */
+    const GUIDE_MAX_CONTENT = 12000;
+
     /**
      * Prompt for generating a simulation from scratch.
      *
@@ -62,26 +65,59 @@ class prompt_builder {
         $map['{{CHANGE_REQUEST}}'] = trim($changerequest) !== '' ? trim($changerequest)
             : 'Verbessere die Simulation didaktisch und technisch, ohne ihren Charakter zu verändern.';
         $conversation = self::is_conversation($simgen, $version);
-        if ($version->codetype === 'html') {
-            $map['{{CURRENT_CODE}}'] = "```html\n" . $version->sourcecode . "\n```";
-        } else {
-            $current = "```css\n" . ($version->css ?? '') . "\n```\n\n";
-            if ($conversation) {
-                $personas = array_values(conversation::from_version($version));
-                if ($personas) {
-                    $current .= "```json\n" . json_encode(['personas' => $personas], JSON_PRETTY_PRINT
-                        | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n```\n\n";
-                } else {
-                    // Do not show an empty list - the model tends to copy it.
-                    $current .= "(Diese Version enthält noch keine Gesprächsfiguren und keine Live-Gespräche. Baue die "
-                        . "Simulation zu einer Live-Gesprächssimulation um und definiere die Figuren neu gemäss Schema.)\n\n";
-                }
-            }
-            $map['{{CURRENT_CODE}}'] = $current . "```jsx\n" . $version->sourcecode . "\n```";
-        }
+        $map['{{CURRENT_CODE}}'] = self::current_code($version, $conversation, true);
         $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, $version->codetype,
             $conversation);
         return self::fill($template, $map);
+    }
+
+    /**
+     * Prompt for the facilitator guide of a version.
+     *
+     * The guide is generated from the briefing and the actual code, so it describes the decisions and consequences
+     * the learners really encounter.
+     *
+     * @param stdClass $simgen instance record
+     * @param context_module $context
+     * @param stdClass $version version the guide is written for
+     * @return string
+     */
+    public static function build_guide_prompt(stdClass $simgen, context_module $context, stdClass $version): string {
+        $template = self::get_template('prompt_guide', prompt_templates::GUIDE, false);
+        $map = self::briefing_placeholders($simgen, $context);
+        // The code is the main source of the guide; shorten the material so both fit into the context window.
+        if (\core_text::strlen($map['{{CONTENT}}']) > self::GUIDE_MAX_CONTENT) {
+            $map['{{CONTENT}}'] = \core_text::substr($map['{{CONTENT}}'], 0, self::GUIDE_MAX_CONTENT) . "\n[…]";
+        }
+        $map['{{CURRENT_CODE}}'] = self::current_code($version, self::is_conversation($simgen, $version), false);
+        return self::fill($template, $map);
+    }
+
+    /**
+     * The code of a version as Markdown code blocks (CSS, personas, JSX or a complete HTML document).
+     *
+     * @param stdClass $version
+     * @param bool $conversation live conversations with AI personas
+     * @param bool $forrevision the code is revised (asks the model to add personas if they are missing)
+     * @return string
+     */
+    private static function current_code(stdClass $version, bool $conversation, bool $forrevision): string {
+        if ($version->codetype === 'html') {
+            return "```html\n" . $version->sourcecode . "\n```";
+        }
+        $current = "```css\n" . ($version->css ?? '') . "\n```\n\n";
+        if ($conversation) {
+            $personas = array_values(conversation::from_version($version));
+            if ($personas) {
+                $current .= "```json\n" . json_encode(['personas' => $personas], JSON_PRETTY_PRINT
+                    | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n```\n\n";
+            } else if ($forrevision) {
+                // Do not show an empty list - the model tends to copy it.
+                $current .= "(Diese Version enthält noch keine Gesprächsfiguren und keine Live-Gespräche. Baue die "
+                    . "Simulation zu einer Live-Gesprächssimulation um und definiere die Figuren neu gemäss Schema.)\n\n";
+            }
+        }
+        return $current . "```jsx\n" . $version->sourcecode . "\n```";
     }
 
     /**
@@ -166,15 +202,16 @@ class prompt_builder {
      *
      * @param string $configname
      * @param string $default
+     * @param bool $technical the template produces code and needs the runtime contract
      * @return string
      */
-    private static function get_template(string $configname, string $default): string {
+    private static function get_template(string $configname, string $default, bool $technical = true): string {
         $template = trim((string)get_config('mod_simgen', $configname));
         if ($template === '') {
             $template = $default;
         }
         // The player only works if the runtime contract is part of the prompt.
-        if (strpos($template, self::PLACEHOLDER_TECHNICAL) === false) {
+        if ($technical && strpos($template, self::PLACEHOLDER_TECHNICAL) === false) {
             $template .= "\n\n" . self::PLACEHOLDER_TECHNICAL;
         }
         return $template;
