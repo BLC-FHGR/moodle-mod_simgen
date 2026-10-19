@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/simgen/db" VERSION="20261012" COMMENT="XMLDB file for Moodle mod_simgen"
+<XMLDB PATH="mod/simgen/db" VERSION="20261019"COMMENT="XMLDB file for Moodle mod_simgen"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -58,6 +58,14 @@
         <FIELD NAME="modelinfo" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="guide" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Facilitator guide for teachers (Markdown)"/>
+        <FIELD NAME="guidestatus" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Generation status of the guide"/>
+        <FIELD NAME="guidemessage" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Error message of the last guide generation"/>
+        <FIELD NAME="guideorigin" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="ai or manual"/>
+        <FIELD NAME="guidemodelinfo" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="guiderequested" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of the latest guide request"/>
+        <FIELD NAME="guidestarted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp the running guide generation started"/>
+        <FIELD NAME="guidemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

@@ -51,6 +51,9 @@ if ($ADMIN->fulltree) {
         get_string('settings_maxduration', 'mod_simgen'), get_string('settings_maxduration_desc', 'mod_simgen'),
         60, PARAM_INT));
 
+    $settings->add(new admin_setting_configcheckbox('mod_simgen/autoguide',
+        get_string('settings_autoguide', 'mod_simgen'), get_string('settings_autoguide_desc', 'mod_simgen'), 1));
+
     // Live conversations.
     $settings->add(new admin_setting_heading('mod_simgen/heading_conversation',
         get_string('settings_heading_conversation', 'mod_simgen'),
@@ -96,6 +99,11 @@ if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configtextarea('mod_simgen/prompt_revise',
         get_string('settings_prompt_revise', 'mod_simgen'),
         get_string('settings_prompt_revise_desc', 'mod_simgen') . $showdefault(prompt_templates::REVISE),
+        '', PARAM_RAW, 100, 20));
+
+    $settings->add(new admin_setting_configtextarea('mod_simgen/prompt_guide',
+        get_string('settings_prompt_guide', 'mod_simgen'),
+        get_string('settings_prompt_guide_desc', 'mod_simgen') . $showdefault(prompt_templates::GUIDE),
         '', PARAM_RAW, 100, 20));
 
     // Runtime.

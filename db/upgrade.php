@@ -64,5 +64,27 @@ function xmldb_simgen_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026101300, 'simgen');
     }
 
+    if ($oldversion < 2026101900) {
+        // Facilitator guide per version.
+        $table = new xmldb_table('simgen_versions');
+        $fields = [
+            new xmldb_field('guide', XMLDB_TYPE_TEXT, null, null, null, null, null, 'timecreated'),
+            new xmldb_field('guidestatus', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'guide'),
+            new xmldb_field('guidemessage', XMLDB_TYPE_TEXT, null, null, null, null, null, 'guidestatus'),
+            new xmldb_field('guideorigin', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'guidemessage'),
+            new xmldb_field('guidemodelinfo', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'guideorigin'),
+            new xmldb_field('guiderequested', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'guidemodelinfo'),
+            new xmldb_field('guidestarted', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'guiderequested'),
+            new xmldb_field('guidemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'guidestarted'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026101900, 'simgen');
+    }
+
     return true;
 }

@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Polls the generation status and reloads the page as soon as it changes.
+ * Polls the generation status (simulation or guide) and reloads the page as soon as it changes.
  *
  * NOTE: amd/build/statuspoll.min.js is a hand-written AMD version of this file. Rebuild it with grunt after changes.
  *
@@ -32,8 +32,9 @@ import Ajax from 'core/ajax';
  * @param {Number} status current status
  * @param {String} elapsedregion selector of an element showing the elapsed time
  * @param {Number} since timestamp (seconds) the generation was requested
+ * @param {Number} versionid if set, the status of the guide of this version is polled (guide page)
  */
-export const init = (cmid, status, elapsedregion, since) => {
+export const init = (cmid, status, elapsedregion, since, versionid = 0) => {
     const elapsed = elapsedregion ? document.querySelector(elapsedregion) : null;
     if (elapsed && since) {
         const tick = () => {
@@ -45,9 +46,12 @@ export const init = (cmid, status, elapsedregion, since) => {
     }
 
     const poll = () => {
-        Ajax.call([{methodname: 'mod_simgen_get_status', args: {cmid}}])[0]
+        Ajax.call([{methodname: 'mod_simgen_get_status', args: {cmid, versionid}}])[0]
             .then((result) => {
-                if (result.status !== status) {
+                if (versionid && result.guidestatus !== status) {
+                    // Guide page: reload the same version.
+                    window.location.reload();
+                } else if (!versionid && result.status !== status) {
                     // Reload without a selected version, so the newly generated version is shown.
                     const url = new URL(window.location.href);
                     url.searchParams.delete('version');

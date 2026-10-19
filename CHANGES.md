@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.4.0 (2026-10-19)
+
+- Leitfaden für Lehrpersonen pro Version (Brief → Play → Debrief): Vorbereitung, Sprechskript für die Einführung, Durchführung, Debrief in drei Schritten, fachliche Auflösung, Reflexions- und Evaluationsfragen.
+- Eigene KI-Anfrage auf Grundlage von Briefing und Code der Version; wird beim Veröffentlichen automatisch erstellt (Einstellung `autoguide`) und kann jederzeit erstellt, neu erstellt und bearbeitet werden.
+- Neue Seite `guide.php` mit Download als HTML (druckbar) und Markdown; Button «Leitfaden» im Verwaltungsbereich.
+- Neue Berechtigung `mod/simgen:viewguide`: Nicht bearbeitende Lehrpersonen sehen den Leitfaden der veröffentlichten Version. Studierende sehen ihn nie.
+- Prompt-Vorlage für den Leitfaden in den Plugin-Einstellungen anpassbar.
+
 ## 0.3.0 (2026-10-14)
 
 - Formeln mit `<Formula tex="…" />` (KaTeX): fehlerhaftes LaTeX wird rot angezeigt und als Fehler gemeldet, statt die Simulation abzubrechen.

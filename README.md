@@ -32,6 +32,27 @@ Studierende ◄──── sandboxed iframe (sim.php) ◄──── veröffen
 - **Maximale Bearbeitungszeit** (Standard 60 Minuten, einstellbar): verhindert Briefings, die das Modell überfordern.
 - **Live-Gespräch mit KI-Figuren** (Simulationstyp, ab 0.2): siehe unten.
 - **Formeln und mathematische Grafiken** (ab 0.3): KaTeX und JSXGraph sind im Plugin enthalten, siehe unten.
+- **Leitfaden für Lehrpersonen** (ab 0.4): Brief, Durchführung und Debrief zur fertigen Simulation, siehe unten.
+
+## Leitfaden für Lehrpersonen (ab Version 0.4)
+
+Eine Simulation erklärt sich nicht selbst: Das meiste Lernen passiert in der moderierten Nachbesprechung (Debrief). Deshalb erstellt das Plugin zu jeder Version einen Leitfaden nach dem Ablauf **Brief → Play → Debrief**:
+
+1. Überblick mit Zeitplan und Zuordnung Lernergebnis ↔ Interaktion
+2. Vorbereitung: Wege zum Selbst-Durchspielen, Technik, Plan B
+3. Brief: Sprechskript (Theorie-Recap, Bedienung, Rahmen inkl. Bewertung, Einstieg)
+4. Play: Rolle der Lehrperson, typische Stolpersteine, Hilfen ohne Lösung
+5. Debrief in drei Schritten: Erleben teilen → Ergebnisse und Strategien → Transfer und Modellgrenzen
+6. Fachlicher Hintergrund und Auflösung
+7. Reflexionsauftrag und Fragen zur Evaluation
+
+Umsetzung:
+
+- **Eigene KI-Anfrage** (Einsatzzweck der Generierung) auf Grundlage von Briefing **und Code der Version**: Der Leitfaden beschreibt die Entscheidungen und Konsequenzen, die tatsächlich in der Simulation vorkommen. Er konkurriert nicht mit dem Code um das Ausgabelimit und kann neu erstellt werden, ohne den Code anzufassen. Das Material wird dafür auf 12 000 Zeichen gekürzt (`prompt_builder::GUIDE_MAX_CONTENT`).
+- **Wann:** automatisch beim **Veröffentlichen**, falls die Version noch keinen Leitfaden hat (Einstellung `autoguide`, Standard an). Wer sich vorher vorbereiten will, erstellt ihn auf der Leitfaden-Seite selbst («Leitfaden erstellen»). So kosten die Überarbeitungsrunden kein zusätzliches Kontingent.
+- **Seite `guide.php`:** Anzeige, «Neu erstellen», «Bearbeiten» (Markdown, manuelle Fassung bleibt erhalten), Download als HTML (druckbar, lässt sich in Word öffnen) und Markdown, «Jetzt direkt erstellen» ohne Cron.
+- **Sichtbarkeit:** Lehrpersonen mit `mod/simgen:manage` sehen den Leitfaden jeder Version, Lehrpersonen mit `mod/simgen:viewguide` (z. B. ohne Bearbeitungsrecht) den der veröffentlichten Version. Der Leitfaden enthält die Auflösung und wird nie über `sim.php` oder den HTML-Download der Simulation ausgeliefert.
+- Die Prompt-Vorlage ist in den Plugin-Einstellungen anpassbar (`prompt_guide`, Standard: `prompt_templates::GUIDE`).
 
 ## Live-Gespräch mit KI-Figuren (ab Version 0.2)
 
@@ -103,7 +124,7 @@ Hinweis: `local_ai_manager` wandelt die Antwort von `singleprompt`/`chat` in HTM
 
 *Website-Administration › Plugins › Aktivitäten › KI-Simulation*
 
-- **Prompt-Vorlagen** (das «Prompt-Gerüst») für Generierung und Überarbeitung, mit Platzhaltern wie `{{TARGETGROUP}}`, `{{LEARNINGOUTCOMES}}`, `{{CONTENT}}` usw. Der technische Laufzeit-Vertrag (`{{TECHNICAL_RULES}}`) ist nicht editierbar und wird angehängt, falls er fehlt. Standardvorlagen: `classes/local/prompt_templates.php`.
+- **Prompt-Vorlagen** (das «Prompt-Gerüst») für Generierung, Überarbeitung und Leitfaden, mit Platzhaltern wie `{{TARGETGROUP}}`, `{{LEARNINGOUTCOMES}}`, `{{CONTENT}}` usw. Der technische Laufzeit-Vertrag (`{{TECHNICAL_RULES}}`) ist nicht editierbar und wird angehängt, falls er fehlt. Standardvorlagen: `classes/local/prompt_templates.php`.
 - **Maximale Materiallänge** (Standard 30 000 Zeichen): an das Kontextfenster des Modells anpassen.
 - **pdftotext**-Pfad (optional, sonst Ghostscript `$CFG->pathtogs`) für PDF-Uploads.
 - **Laufzeit-Bibliotheken**: React 18.3.1, ReactDOM 18.3.1, Babel standalone 7.26.10 – standardmässig von jsDelivr. KaTeX und JSXGraph sind im Plugin enthalten und brauchen keine Einstellung.
@@ -160,10 +181,10 @@ Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useM
 - `amd/build/*.min.js` sind handgeschriebene AMD-Versionen von `amd/src/*.js`. Nach Änderungen an `amd/src` mit Moodles `grunt amd` neu bauen.
 - Installations-ZIP aus dem Repo erstellen (Ordner `simgen/` im ZIP, ohne Git-Dateien):
   ```bash
-  git archive --prefix=simgen/ -o mod_simgen_0.3.0.zip HEAD
+  git archive --prefix=simgen/ -o mod_simgen_0.4.0.zip HEAD
   ```
 - Änderungen pro Version stehen in [CHANGES.md](CHANGES.md).
-- Datenbank: `simgen` (Briefing, Status), `simgen_versions` (Code, Prompt, Antwort), `simgen_states` (Fortschritt).
+- Datenbank: `simgen` (Briefing, Status), `simgen_versions` (Code, Prompt, Antwort, Leitfaden), `simgen_states` (Fortschritt), `simgen_conversations` (Live-Gespräche).
 
 ## Mögliche Erweiterungen
 

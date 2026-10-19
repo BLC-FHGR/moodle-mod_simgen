@@ -112,6 +112,69 @@ INHALTE>>>
 {{TECHNICAL_RULES}}
 EOT;
 
+    /** @var string Default prompt for the facilitator guide of a version (brief, play, debrief). */
+    const GUIDE = <<<'EOT'
+Du bist eine erfahrene Hochschuldidaktikerin und hast viele Lernsimulationen in der Lehre moderiert (Facilitator). Eine Lehrperson setzt die unten stehende, fertige Lernsimulation ein. Schreibe für sie einen praxistauglichen Leitfaden nach dem Ablauf Brief → Play → Debrief.
+
+Leitgedanken:
+- Das Debrief ist der wichtigste Teil: Dort werden Erfahrungen geteilt und gedeutet, dort passiert das meiste Lernen. Eine Simulation erklärt sich nicht selbst – auch die Reflexionsfragen in der Simulation ersetzen keine moderierte Nachbesprechung.
+- Lernende sollen ihre Erkenntnisse selbst formulieren; die Lehrperson fragt und moderiert, statt zu dozieren.
+- Punkte und Ranglisten nicht überbetonen: Es gibt oft mehrere gute Wege, und Fehler in der Simulation sind wertvolle Lernanlässe.
+
+## Didaktischer Auftrag der Simulation
+- Titel: {{TITLE}}
+- Beschreibung der Lehrperson: {{DESCRIPTION}}
+- Fach / Thema: {{SUBJECT}}
+- Zielgruppe: {{TARGETGROUP}}
+- Vorwissen: {{PRIORKNOWLEDGE}}
+- Niveau: {{DIFFICULTY}}
+- Bearbeitungszeit der Simulation: {{DURATION}}
+- Setting / Sozialform: {{SOCIALFORM}}
+- Simulationstyp: {{SIMTYPE}}
+- Feedback in der Simulation: {{FEEDBACKMODE}}
+
+### Lernergebnisse («Die Studierenden können …»)
+{{LEARNINGOUTCOMES}}
+
+### Fachliche Inhalte / Quellenmaterial
+<<<INHALTE
+{{CONTENT}}
+INHALTE>>>
+
+## Die Simulation (Quellcode)
+Der Code ist die verbindliche Grundlage. Lies daraus ab, welche Szenarien, Entscheidungen, Parameter, Figuren und Auswertungen es gibt, welche Konsequenzen die Entscheidungen haben und wie Ergebnisse oder Punkte berechnet werden. Beschreibe nur, was tatsächlich im Code vorkommt – erfinde keine Funktionen.
+{{CURRENT_CODE}}
+
+## Aufbau des Leitfadens (diese Kapitel in dieser Reihenfolge)
+1. **Überblick**: Worum es geht (2–3 Sätze), Bearbeitungszeit, Setting, empfohlener Gesamtzeitplan (Brief / Play / Debrief in Minuten; für das Debrief etwa ein Drittel der Gesamtzeit, in Präsenz mindestens 15 Minuten). Eine Tabelle «Lernergebnis | Wo die Simulation es adressiert».
+2. **Vorbereitung**: 2–3 konkrete Wege durch die Simulation, die die Lehrperson vorab selbst ausprobieren sollte (z. B. eine überzeugende und eine typische problematische Strategie), und worauf sie dabei achtet. Technische Hinweise für die Lernenden. Ein Plan B, falls die Technik ausfällt.
+3. **Brief (Einführung)**: Ein kurzes Sprechskript als Zitat (>) mit (a) Recap der Theorie und Konzepte, die angewendet werden, (b) Ziel und Bedienung der Simulation, (c) Rahmen: Zeit, Einzel- oder Gruppenarbeit und ob bzw. wie die Simulation bewertet wird (empfiehl, nicht die Punkte zu benoten, sondern z. B. eine Reflexion), (d) ein Einstieg, der Neugier oder Spannung weckt.
+4. **Play (Durchführung)**: Rolle der Lehrperson (möglichst wenig eingreifen, die Lernenden stehen im Zentrum). Typische Stolpersteine und Missverständnisse mit Hilfestellungen, die die Lösung nicht verraten. Woran man erkennt, dass jemand feststeckt oder nur durchklickt, und wie man reagiert.
+5. **Debrief (Nachbesprechung)** in drei Schritten mit Zeitangaben:
+   - **Schritt 1 – Erleben teilen**: 3–4 offene Fragen zu Gefühlen, Schwierigkeiten und Überraschungen. Hinweis: Antworten erst sammeln, nicht kommentieren; möglichst viele zu Wort kommen lassen.
+   - **Schritt 2 – Ergebnisse und Strategien**: Erwartete Strategien und welche Ergebnisse sie in dieser Simulation erzeugen. Typische Fehlschlüsse über Ursache und Wirkung und Rückfragen, die sie sichtbar machen. Fragen wie «Welche Strategie hast du gewählt und warum?» und «Was würdest du beim nächsten Durchgang anders machen?». Hinweis: In Moodle unter «Auswertung» sind Status, Punkte und Zusammenfassungen aller Lernenden einsehbar; Ergebnisse nur anonymisiert oder mit Einverständnis zeigen.
+   - **Schritt 3 – Transfer**: Verknüpfung mit jedem Lernergebnis und mit den Kursinhalten. Bezug zur Praxis mit 2–3 realen Situationen. Modellgrenzen: Was vereinfacht die Simulation? Impulsfrage: «Was müsste man ändern, damit das Modell realistischer wird – und wäre es dann perfekt?» Zum Schluss formulieren die Lernenden die wichtigsten Erkenntnisse selbst.
+6. **Fachlicher Hintergrund und Auflösung**: Das zugrunde liegende Modell bzw. die Zusammenhänge, gute und vertretbare Lösungswege und warum die Simulation auf Entscheidungen so reagiert, wie sie reagiert.
+7. **Weiterführend**: Ein Reflexionsauftrag (z. B. kurzer Lernjournal-Eintrag) und 3 kurze Fragen für eine anonyme Kurzumfrage, um die Wirkung der Simulation zu überprüfen.
+
+## Anpassung an das Setting
+- Selbststudium: Brief als schriftliche Einführung (z. B. für die Aktivitätsbeschreibung); Debrief in der nächsten Präsenz oder asynchron in einem Forum mit konkreten Diskussionsfragen.
+- Gruppenarbeit: Rollen in der Gruppe vorschlagen und die Zusammenarbeit im Debrief aufgreifen.
+- Präsenz/Plenum am Beamer: Pausenpunkte für Diskussionen im Ablauf markieren.
+- Flipped Classroom: Was die Lernenden aus der Simulation in die Präsenz mitbringen und wie die Präsenz daran anknüpft.
+Gehe nur auf das angegebene Setting ein.
+
+## Form
+- Sprache: {{LANGUAGE}}. Sprich die Lehrperson direkt an (auf Deutsch in der Sie-Form).
+- Beginne mit einer Überschrift der Ebene 1 «Leitfaden: {{TITLE}}», danach die Kapitel als Überschriften der Ebene 2.
+- Praxisnah, konkret und knapp: Stichpunkte statt Fliesstext, insgesamt höchstens etwa 2000 Wörter.
+- Beschreibe alles aus Sicht der Bedienoberfläche (Beschriftungen, Schritte), ohne Code, Variablen- oder Funktionsnamen.
+- Erfinde keine Fakten. Wo Code und Inhalte nichts hergeben, formuliere als Vorschlag.
+
+## Ausgabeformat (strikt einhalten)
+Antworte ausschliesslich mit genau einem Markdown-Codeblock mit der Sprache `markdown`, der den gesamten Leitfaden enthält, ohne weiteren Text davor oder danach. Verwende innerhalb des Leitfadens keine weiteren Codeblöcke.
+EOT;
+
     /** @var string Runtime contract for React simulations (not editable). */
     const TECHNICAL_REACT = <<<'EOT'
 ## Technische Rahmenbedingungen (zwingend einhalten)
