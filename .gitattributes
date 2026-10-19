@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+# Nicht ins Installations-ZIP (git archive)
+.gitattributes export-ignore
+.gitignore export-ignore

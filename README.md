@@ -77,7 +77,11 @@ Umsetzung:
 
 ## Installation
 
-1. Ordner `simgen` nach `<moodle>/mod/simgen` kopieren (ab Moodle 5.1: `<moodle>/public/mod/simgen`).
+1. Plugin nach `<moodle>/mod/simgen` legen (ab Moodle 5.1: `<moodle>/public/mod/simgen`), entweder per Git:
+   ```bash
+   git clone https://github.com/BLC-FHGR/moodle-mod_simgen.git mod/simgen
+   ```
+   oder als ZIP über *Website-Administration › Plugins › Plugin installieren* (siehe «Entwicklung» zum Erstellen des ZIPs).
 2. Voraussetzung: `local_ai_manager` ist installiert (Abhängigkeit in `version.php`), Moodle ≥ 4.4.
 3. *Website-Administration › Mitteilungen* aufrufen und die Installation abschliessen.
 4. Cron muss laufen (idealerweise jede Minute), sonst bleiben Generierungen auf «eingeplant» stehen. Lehrpersonen können sie dann über «Jetzt direkt generieren» starten.
@@ -154,6 +158,11 @@ Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useM
 ## Entwicklung
 
 - `amd/build/*.min.js` sind handgeschriebene AMD-Versionen von `amd/src/*.js`. Nach Änderungen an `amd/src` mit Moodles `grunt amd` neu bauen.
+- Installations-ZIP aus dem Repo erstellen (Ordner `simgen/` im ZIP, ohne Git-Dateien):
+  ```bash
+  git archive --prefix=simgen/ -o mod_simgen_0.3.0.zip HEAD
+  ```
+- Änderungen pro Version stehen in [CHANGES.md](CHANGES.md).
 - Datenbank: `simgen` (Briefing, Status), `simgen_versions` (Code, Prompt, Antwort), `simgen_states` (Fortschritt).
 
 ## Mögliche Erweiterungen
@@ -162,3 +171,7 @@ Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useM
 - Anzeige direkt auf der Kursseite (wie «Text- und Medienfeld»).
 - Bilder im Material über den Einsatzzweck «Bild zu Text» (itt) beschreiben lassen.
 - Subresource Integrity (SRI) für CDN-Bibliotheken, PHPUnit-/Behat-Tests.
+
+## Lizenz
+
+© 2026 FH Graubünden. Lizenziert unter der [GNU GPL v3 oder später](LICENSE), wie Moodle selbst. Mitgelieferte Bibliotheken (KaTeX, JSXGraph) stehen unter ihren eigenen Lizenzen, siehe `thirdpartylibs.xml`.
