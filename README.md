@@ -181,7 +181,7 @@ Global verfügbar: `React`, `ReactDOM`, `useState`, `useEffect`, `useRef`, `useM
 - `amd/build/*.min.js` sind handgeschriebene AMD-Versionen von `amd/src/*.js`. Nach Änderungen an `amd/src` mit Moodles `grunt amd` neu bauen.
 - Installations-ZIP aus dem Repo erstellen (Ordner `simgen/` im ZIP, ohne Git-Dateien):
   ```bash
-  git archive --prefix=simgen/ -o mod_simgen_0.4.0.zip HEAD
+  git archive --prefix=simgen/ -o mod_simgen_0.4.1.zip HEAD
   ```
 - Änderungen pro Version stehen in [CHANGES.md](CHANGES.md).
 - Datenbank: `simgen` (Briefing, Status), `simgen_versions` (Code, Prompt, Antwort, Leitfaden), `simgen_states` (Fortschritt), `simgen_conversations` (Live-Gespräche).

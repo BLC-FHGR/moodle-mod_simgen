@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.4.1 (2026-10-21)
+
+- Fehler in `db/install.xml` behoben (fehlendes Leerzeichen vor `COMMENT`): Die Neuinstallation brach mit «XML database file errors found» (`ddlxmlfileerror`) ab.
+
 ## 0.4.0 (2026-10-19)
 
 - Leitfaden für Lehrpersonen pro Version (Brief → Play → Debrief): Vorbereitung, Sprechskript für die Einführung, Durchführung, Debrief in drei Schritten, fachliche Auflösung, Reflexions- und Evaluationsfragen.
