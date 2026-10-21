@@ -25,11 +25,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_simgen';
-$plugin->version   = 2026101900;
+$plugin->version   = 2026102100;
 $plugin->requires  = 2024042200; // Moodle 4.4 (minimum of local_ai_manager).
 $plugin->supported = [404, 502];
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.4.0';
+$plugin->release   = '0.4.1';
 $plugin->dependencies = [
     'local_ai_manager' => ANY_VERSION,
 ];
