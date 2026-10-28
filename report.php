@@ -24,6 +24,9 @@
 
 require(__DIR__ . '/../../config.php');
 
+use mod_simgen\local\prompt_builder;
+use mod_simgen\local\time_plan;
+
 $id = required_param('id', PARAM_INT);
 $resetuser = optional_param('resetuser', 0, PARAM_INT);
 
@@ -102,6 +105,44 @@ echo html_writer::tag('p', get_string('report_summary', 'mod_simgen', (object)[
     'enrolled' => $enrolled,
 ]));
 
+// Working time: planned (briefing) vs. measured active time until the first completion.
+$planned = prompt_builder::duration_minutes($simgen);
+$times = [];
+foreach ($rows as $row) {
+    if ($row->completed && !empty($row->state->completedactivetime)) {
+        $times[] = (int)$row->state->completedactivetime;
+    }
+}
+if ($times) {
+    sort($times);
+    $count = count($times);
+    $median = $count % 2 ? $times[intdiv($count, 2)] : ($times[$count / 2 - 1] + $times[$count / 2]) / 2;
+    $medianminutes = max(1, (int)round($median / 60));
+    $info = get_string('report_time', 'mod_simgen', (object)[
+        'planned' => $planned ?: '–',
+        'median' => $medianminutes,
+        'count' => $count,
+    ]);
+    // Clearly too short with enough data (at least 3 completions): offer the teacher to extend the published version.
+    if ($planned && $count >= 3 && $medianminutes < $planned * time_plan::MIN_SHARE
+            && has_capability('mod/simgen:manage', $context) && $simgen->publishedversion) {
+        $extendurl = new moodle_url('/mod/simgen/revise.php', [
+            'id' => $cm->id,
+            'version' => $simgen->publishedversion,
+            'prefill' => get_string('report_extend_request', 'mod_simgen', (object)[
+                'planned' => $planned,
+                'median' => $medianminutes,
+                'count' => $count,
+            ]),
+        ]);
+        echo $OUTPUT->notification($info . ' ' . get_string('report_time_short', 'mod_simgen') . ' '
+            . html_writer::link($extendurl, get_string('report_extend', 'mod_simgen'), ['class' => 'btn btn-sm btn-primary']),
+            \core\output\notification::NOTIFY_WARNING, false);
+    } else {
+        echo html_writer::tag('p', $info);
+    }
+}
+
 if (!$rows) {
     echo $OUTPUT->notification(get_string('report_empty', 'mod_simgen'), \core\output\notification::NOTIFY_INFO);
 } else {
@@ -114,6 +155,7 @@ if (!$rows) {
         get_string('report_status', 'mod_simgen'),
         get_string('report_score', 'mod_simgen'),
         get_string('report_summarycol', 'mod_simgen'),
+        get_string('report_activetime', 'mod_simgen'),
     ];
     if ($hasconversations) {
         $table->head[] = get_string('report_conversations', 'mod_simgen');
@@ -151,7 +193,19 @@ if (!$rows) {
             ]);
         }
 
-        $cells = [fullname($row->user), $status, $score, $summary];
+        // Active time in minutes; until the first completion if completed (that is what the plan is compared with).
+        $activetime = '';
+        if ($state && !empty($state->activetime)) {
+            $activetime = get_string('report_minutes', 'mod_simgen', max(1, (int)round($state->activetime / 60)));
+            if (!empty($state->completedactivetime) && $state->completedactivetime != $state->activetime) {
+                $activetime = get_string('report_minutes', 'mod_simgen',
+                    max(1, (int)round($state->completedactivetime / 60))) . ' '
+                    . html_writer::span('(' . $activetime . ')', 'text-muted small',
+                        ['title' => get_string('report_activetime_total', 'mod_simgen')]);
+            }
+        }
+
+        $cells = [fullname($row->user), $status, $score, $summary, $activetime];
         if ($hasconversations) {
             $cells[] = $row->conv
                 ? html_writer::link(new moodle_url('/mod/simgen/conversation.php', ['id' => $cm->id, 'userid' => $row->user->id]),

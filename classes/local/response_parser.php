@@ -38,8 +38,9 @@ class response_parser {
      * Parses the AI response.
      *
      * @param string $content response content of local_ai_manager
-     * @return array ['codetype' => 'react'|'html', 'sourcecode' => string, 'css' => string, 'personas' => string]
-     *               personas is the raw JSON of the persona definitions ('' if none)
+     * @return array ['codetype' => 'react'|'html', 'sourcecode' => string, 'css' => string, 'personas' => string,
+     *               'timeplan' => string] personas is the raw JSON of the persona definitions ('' if none),
+     *               timeplan the normalised JSON of the schedule ('' if none)
      * @throws moodle_exception if no usable code was found
      */
     public static function parse(string $content): array {
@@ -67,7 +68,8 @@ class response_parser {
 
         // Unlabelled blocks: guess by content.
         foreach ($unknown as $code) {
-            if (preg_match('/^\s*[\[{]/', $code) && strpos($code, '"personas"') !== false) {
+            if (preg_match('/^\s*[\[{]/', $code)
+                    && (strpos($code, '"personas"') !== false || strpos($code, '"plan"') !== false)) {
                 $json[] = $code;
             } else if (preg_match('/function\s+App\b|const\s+App\s*=|React\./', $code)) {
                 $js[] = $code;
@@ -75,6 +77,16 @@ class response_parser {
                 $html[] = $code;
             } else if (preg_match('/^\s*[.#:a-z][^{]*\{[^}]*:[^}]*\}/mi', $code)) {
                 $css[] = $code;
+            }
+        }
+
+        // The schedule is the JSON block with "plan" (and without "personas").
+        $timeplan = '';
+        foreach ($json as $i => $block) {
+            if (strpos($block, '"personas"') === false && ($plan = time_plan::normalise($block))) {
+                $timeplan = time_plan::to_json($plan);
+                unset($json[$i]);
+                break;
             }
         }
 
@@ -95,6 +107,7 @@ class response_parser {
                 'sourcecode' => $source,
                 'css' => trim(implode("\n\n", $css)),
                 'personas' => $personas,
+                'timeplan' => $timeplan,
             ];
         }
         if ($html) {
@@ -105,6 +118,7 @@ class response_parser {
                 'sourcecode' => trim($html[0]),
                 'css' => '',
                 'personas' => '',
+                'timeplan' => $timeplan,
             ];
         }
         throw new moodle_exception('error_nocode', 'mod_simgen');

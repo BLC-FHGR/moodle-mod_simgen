@@ -72,6 +72,7 @@
         <FIELD NAME="checkerror" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="First error of a failed start-up check"/>
         <FIELD NAME="compiled" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: precompiled code for students"/>
         <FIELD NAME="compiledhash" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="Fingerprint of source and compiler of the precompiled code"/>
+        <FIELD NAME="timeplan" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: schedule planned by the AI (phases with minutes)"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -96,6 +97,8 @@
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecompleted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="activetime" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Active working time in seconds"/>
+        <FIELD NAME="completedactivetime" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Active working time until the first completion in seconds"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

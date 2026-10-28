@@ -379,3 +379,21 @@ $string['check_unknownpersona'] = 'useConversation uses personas that are not de
 $string['origin_autorepair'] = 'Automatic fix';
 $string['settings_autorepair'] = 'Automatic repair rounds';
 $string['settings_autorepair_desc'] = 'If the automatic check finds errors in a version created by the AI (code check right after the generation or test when first opened in the preview), the AI fixes them on its own - at most this many rounds in a row. Every round is an additional AI request. Manually edited code is never changed automatically.';
+
+// Working time (0.5.1).
+$string['check_noplan'] = 'The response contains no schedule; it is not checked whether the simulation fills the working time of {$a->minutes} minutes.';
+$string['check_planlong'] = 'The schedule covers {$a->planned} minutes, clearly more than the working time of {$a->minutes} minutes.';
+$string['check_planshort'] = 'The schedule only covers {$a->planned} of {$a->minutes} minutes of working time. Extend the simulation with further tasks in which the learners are active (predict, calculate, decide and justify) instead of adding text, and update the schedule.';
+$string['privacy:metadata:simgen_states:activetime'] = 'Active working time (measured while the page is visible and the person was active)';
+$string['report_activetime'] = 'Active time';
+$string['report_activetime_total'] = 'Total, incl. time after completion';
+$string['report_extend'] = 'Extend scope';
+$string['report_extend_request'] = 'The students only need a median of {$a->median} instead of the planned {$a->planned} minutes for this simulation (measured active time until completion, {$a->count} persons). Extend the simulation so that it fills the working time: additional or deeper tasks in which the learners are active (predict, calculate, set parameters to reach a goal, decide and justify), "Next" only after an own input. Keep everything that works well and update the schedule.';
+$string['report_minutes'] = '{$a} min';
+$string['report_time'] = 'Working time: planned {$a->planned} min, measured median {$a->median} min (active time until completion, {$a->count} persons).';
+$string['report_time_short'] = 'The simulation is clearly shorter than planned.';
+$string['timeplan'] = 'Schedule';
+$string['timeplan_activity'] = 'Activity';
+$string['timeplan_minutes'] = 'Min.';
+$string['timeplan_phase'] = 'Phase';
+$string['timeplan_total'] = '{$a->planned} of {$a->minutes} min';

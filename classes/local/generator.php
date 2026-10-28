@@ -234,6 +234,8 @@ class generator {
                 'css' => $parsed['css'],
                 'personas' => $personas ? json_encode(['personas' => array_values($personas)],
                     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+                // A revision without a new schedule keeps the schedule of its base version.
+                'timeplan' => $parsed['timeplan'] !== '' ? $parsed['timeplan'] : ($baseversion->timeplan ?? null),
                 'prompttext' => $prompt,
                 'rawresponse' => $response,
                 'revisionnote' => (string)$simgen->pendingfeedback,

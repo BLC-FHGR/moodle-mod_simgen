@@ -54,6 +54,7 @@ class provider implements
             'rawscore' => 'privacy:metadata:simgen_states:rawscore',
             'summary' => 'privacy:metadata:simgen_states:summary',
             'timemodified' => 'privacy:metadata:simgen_states:timemodified',
+            'activetime' => 'privacy:metadata:simgen_states:activetime',
         ], 'privacy:metadata:simgen_states');
 
         $collection->add_database_table('simgen_versions', [
@@ -154,6 +155,9 @@ class provider implements
                         'timecreated' => transform::datetime($state->timecreated),
                         'timemodified' => transform::datetime($state->timemodified),
                         'timecompleted' => $state->timecompleted ? transform::datetime($state->timecompleted) : '-',
+                        'activetime' => format_time((int)$state->activetime),
+                        'completedactivetime' => $state->completedactivetime
+                            ? format_time((int)$state->completedactivetime) : '-',
                     ]);
             }
             $versions = $DB->get_records('simgen_versions', ['simgenid' => $cm->instance, 'userid' => $userid],

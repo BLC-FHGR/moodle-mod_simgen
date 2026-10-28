@@ -379,3 +379,21 @@ $string['check_unknownpersona'] = 'useConversation verwendet Gesprächsfiguren, 
 $string['origin_autorepair'] = 'Automatische Korrektur';
 $string['settings_autorepair'] = 'Automatische Korrekturrunden';
 $string['settings_autorepair_desc'] = 'Findet die automatische Prüfung Fehler in einer von der KI erstellten Version (Code-Prüfung direkt nach der Generierung oder Test beim ersten Öffnen in der Vorschau), korrigiert die KI sie selbständig – höchstens so viele Runden hintereinander. Jede Runde ist eine zusätzliche KI-Anfrage. Manuell bearbeiteter Code wird nie automatisch verändert.';
+
+// Working time (0.5.1).
+$string['check_noplan'] = 'Die Antwort enthält keinen Ablaufplan; ob die Simulation die Bearbeitungszeit von {$a->minutes} Minuten füllt, ist nicht geprüft.';
+$string['check_planlong'] = 'Der Ablaufplan umfasst {$a->planned} Minuten, deutlich mehr als die Bearbeitungszeit von {$a->minutes} Minuten.';
+$string['check_planshort'] = 'Der Ablaufplan umfasst nur {$a->planned} von {$a->minutes} Minuten Bearbeitungszeit. Erweitere die Simulation um weitere Aufträge mit eigener Aktivität der Lernenden (vorhersagen, berechnen, entscheiden und begründen), statt Text hinzuzufügen, und passe den Ablaufplan an.';
+$string['privacy:metadata:simgen_states:activetime'] = 'Aktive Bearbeitungszeit (gemessen, solange die Seite sichtbar ist und die Person aktiv war)';
+$string['report_activetime'] = 'Aktive Zeit';
+$string['report_activetime_total'] = 'Insgesamt, inkl. Zeit nach dem Abschluss';
+$string['report_extend'] = 'Umfang erweitern';
+$string['report_extend_request'] = 'Die Studierenden brauchen für diese Simulation im Median nur {$a->median} statt der geplanten {$a->planned} Minuten (gemessene aktive Zeit bis zum Abschluss, {$a->count} Personen). Erweitere die Simulation so, dass sie die Bearbeitungszeit füllt: zusätzliche oder vertiefende Aufträge mit eigener Aktivität (vorhersagen, berechnen, Parameter gezielt einstellen, entscheiden und begründen), «Weiter» erst nach eigener Eingabe. Behalte alles bei, was gut funktioniert, und passe den Ablaufplan an.';
+$string['report_minutes'] = '{$a} Min.';
+$string['report_time'] = 'Bearbeitungszeit: geplant {$a->planned} Min., gemessen im Median {$a->median} Min. (aktive Zeit bis zum Abschluss, {$a->count} Personen).';
+$string['report_time_short'] = 'Die Simulation ist deutlich kürzer als geplant.';
+$string['timeplan'] = 'Ablaufplan';
+$string['timeplan_activity'] = 'Aktivität';
+$string['timeplan_minutes'] = 'Min.';
+$string['timeplan_phase'] = 'Phase';
+$string['timeplan_total'] = '{$a->planned} von {$a->minutes} Min.';

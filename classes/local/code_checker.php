@@ -39,7 +39,7 @@ class code_checker {
      * Checks a version (or a parsed AI response with the same fields).
      *
      * @param stdClass $simgen instance record
-     * @param stdClass $version with codetype, sourcecode, css and personas (JSON or null)
+     * @param stdClass $version with codetype, sourcecode, css, personas and timeplan (JSON or null)
      * @return array list of ['severity' => ERROR|WARNING, 'message' => string]
      */
     public static function check(stdClass $simgen, stdClass $version): array {
@@ -104,6 +104,21 @@ class code_checker {
         // Completion: without SimBridge.complete() the activity can never be completed.
         if (strpos($code, 'SimBridge.complete') === false) {
             $add(!empty($simgen->completionfinished) ? self::ERROR : self::WARNING, 'nocomplete');
+        }
+
+        // Working time: the schedule must fill the working time of the briefing.
+        $minutes = prompt_builder::duration_minutes($simgen);
+        if ($minutes > 0) {
+            $plan = time_plan::from_version($version);
+            $total = time_plan::total($plan);
+            $a = (object)['planned' => $total, 'minutes' => $minutes];
+            if (!$plan) {
+                $add(self::WARNING, 'noplan', $a);
+            } else if ($total < $minutes * time_plan::MIN_SHARE) {
+                $add(self::ERROR, 'planshort', $a);
+            } else if ($total > $minutes * time_plan::MAX_SHARE) {
+                $add(self::WARNING, 'planlong', $a);
+            }
         }
 
         return $issues;

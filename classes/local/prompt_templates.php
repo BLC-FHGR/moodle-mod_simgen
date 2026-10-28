@@ -62,8 +62,8 @@ INHALTE>>>
 ## Didaktische Anforderungen
 1. Constructive Alignment: Jedes Lernergebnis wird durch mindestens eine konkrete Interaktion adressiert.
 2. Aufbau: kurzer Einstieg (Ziel, Kontext, Bedienhinweis) → aktive Erkundung bzw. Entscheidungen → Feedback → Abschluss mit Zusammenfassung und 2–3 Reflexionsfragen.
-3. Der Umfang passt zur Bearbeitungszeit ({{DURATION}}) – lieber fokussiert als überladen.
-4. Die Lernenden handeln aktiv (Parameter verändern, Entscheidungen treffen, Hypothesen prüfen). Keine reine Textpräsentation.
+3. Der Umfang füllt die Bearbeitungszeit ({{DURATION}}) mit Denkarbeit, nicht mit Text – halte dich an das Zeitbudget in den technischen Rahmenbedingungen.
+4. Die Lernenden handeln aktiv (vorhersagen, berechnen, Parameter verändern, entscheiden und begründen, Hypothesen prüfen). Keine reine Textpräsentation und kein blosses Durchklicken.
 5. Fehler sind Lerngelegenheiten: erklärendes, wertschätzendes Feedback statt nur «falsch».
 6. Fachlich korrekt, adressatengerecht, gendergerechte Sprache.
 7. Modellgrenzen offenlegen: Wo vereinfacht wird, kurz darauf hinweisen.
@@ -191,6 +191,7 @@ EOT;
 - Robustheit: Der Code muss ohne Fehler laufen. Prüfe alle Variablennamen, schliesse alle JSX-Tags, verwende eindeutige `key`-Props in Listen, keine Platzhalter wie «// TODO» oder «…».
 {{MATH_RULES}}
 {{CONVERSATION_RULES}}
+{{TIME_RULES}}
 {{OUTPUT_FORMAT}}
 EOT;
 
@@ -221,18 +222,37 @@ EOT;
     /** @var string Output format of React simulations. */
     const OUTPUT_REACT = <<<'EOT'
 ## Ausgabeformat (strikt einhalten)
-Antworte ausschliesslich mit genau zwei Markdown-Codeblöcken in dieser Reihenfolge und ohne weiteren Text davor oder danach:
-1. Ein Block mit der Sprache `css`, der das gesamte CSS enthält.
-2. Ein Block mit der Sprache `jsx`, der den gesamten React-Code inklusive `function App()` enthält.
+Antworte ausschliesslich mit genau drei Markdown-Codeblöcken in dieser Reihenfolge und ohne weiteren Text davor oder danach:
+1. Ein Block mit der Sprache `json`, der den Ablaufplan enthält (Schema siehe Zeitbudget).
+2. Ein Block mit der Sprache `css`, der das gesamte CSS enthält.
+3. Ein Block mit der Sprache `jsx`, der den gesamten React-Code inklusive `function App()` enthält.
 EOT;
 
     /** @var string Output format of React simulations with live conversations. */
     const OUTPUT_REACT_CONVERSATION = <<<'EOT'
 ## Ausgabeformat (strikt einhalten)
-Antworte ausschliesslich mit genau drei Markdown-Codeblöcken in dieser Reihenfolge und ohne weiteren Text davor oder danach:
-1. Ein Block mit der Sprache `css`, der das gesamte CSS enthält.
-2. Ein Block mit der Sprache `json`, der die Gesprächsfiguren enthält (Schema siehe oben).
-3. Ein Block mit der Sprache `jsx`, der den gesamten React-Code inklusive `function App()` enthält.
+Antworte ausschliesslich mit genau vier Markdown-Codeblöcken in dieser Reihenfolge und ohne weiteren Text davor oder danach:
+1. Ein Block mit der Sprache `json`, der den Ablaufplan enthält (Schema siehe Zeitbudget).
+2. Ein Block mit der Sprache `css`, der das gesamte CSS enthält.
+3. Ein Block mit der Sprache `json`, der die Gesprächsfiguren enthält (Schema siehe oben).
+4. Ein Block mit der Sprache `jsx`, der den gesamten React-Code inklusive `function App()` enthält.
+EOT;
+
+    /**
+     * @var string Working time and activation (not editable, part of the runtime contract).
+     *     {{TIME_TARGET}} and {{TIME_BUDGET}} are filled by prompt_builder::time_rules().
+     */
+    const TIME_RULES = <<<'EOT'
+
+## Zeitbudget und Aktivierung (zwingend einhalten)
+{{TIME_TARGET}} Sprachmodelle unterschätzen die Lernzeit systematisch: Eine Simulation, die beim Durchklicken in 5 Minuten erledigt ist, verfehlt den Auftrag. Plane deshalb ausdrücklich:
+{{TIME_BUDGET}}- Ein Auftrag folgt dem Zyklus: Situation oder Frage → eigene Vorhersage, Schätzung oder Entscheidung (Eingabe) → selbst ausprobieren, rechnen oder begründen → Rückmeldung mit Erklärung → kurze Einordnung.
+- Fülle die Zeit mit Denkarbeit, nicht mit Text: Lesetexte kurz halten (Lernende lesen etwa 150–200 Wörter pro Minute).
+- Kein Schritt lässt sich ohne eigene Aktivität überspringen: «Weiter» wird erst aktiv, wenn die Lernenden etwas eingegeben, vorhergesagt, eingestellt, entschieden oder begründet haben. Rückmeldung und Lösung erscheinen erst nach der eigenen Eingabe.
+- Variiere die Aktivitäten, z. B. Wert schätzen, selbst berechnen und eintippen, Parameter so einstellen, dass ein Ziel erreicht wird, Option wählen und begründen, Szenarien vergleichen, eigene Erkenntnis in einem Satz formulieren.
+- Ablaufplan: Plane den Ablauf, bevor du den Code schreibst, und gib ihn als JSON-Block aus. Schema:
+  {"plan": [{"phase": "Einstieg", "activity": "Was die Lernenden tun", "minutes": 2}, …]}
+  Ein Eintrag pro Phase bzw. Auftrag; minutes ist die realistische Zeit für Lernende der Zielgruppe (ganze Zahl). Der Code setzt jeden Eintrag des Plans um, und die Summe entspricht der Bearbeitungszeit.
 EOT;
 
     /** @var string Rules for simulations with live conversations (AI personas at runtime). */
@@ -306,8 +326,12 @@ EOT;
 - Das globale Objekt `SimBridge` ist verfügbar: `SimBridge.ready` (Promise, liefert den gespeicherten Zustand als Objekt oder null), `SimBridge.set(key, value)` zum Speichern, `SimBridge.get(key, fallback)` zum Lesen und `SimBridge.complete({ score, maxScore, summary })` beim inhaltlichen Abschluss.
 - Die Simulation läuft in einem iframe, dessen Höhe automatisch mit dem Inhalt wächst: keine Layouts mit 100vh.
 
+{{TIME_RULES}}
+
 ## Ausgabeformat (strikt einhalten)
-Antworte ausschliesslich mit genau einem Markdown-Codeblock mit der Sprache `html`, der das vollständige Dokument enthält, ohne weiteren Text davor oder danach.
+Antworte ausschliesslich mit genau zwei Markdown-Codeblöcken in dieser Reihenfolge und ohne weiteren Text davor oder danach:
+1. Ein Block mit der Sprache `json`, der den Ablaufplan enthält (Schema siehe Zeitbudget).
+2. Ein Block mit der Sprache `html`, der das vollständige Dokument enthält.
 EOT;
 
     /** @var string Instructions when progress is saved. */

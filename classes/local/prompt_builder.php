@@ -45,7 +45,7 @@ class prompt_builder {
         $template = self::get_template('prompt_generate', prompt_templates::GENERATE);
         $map = self::briefing_placeholders($simgen, $context);
         $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, 'react',
-            self::is_conversation($simgen));
+            self::is_conversation($simgen), self::duration_minutes($simgen));
         return self::fill($template, $map);
     }
 
@@ -67,7 +67,7 @@ class prompt_builder {
         $conversation = self::is_conversation($simgen, $version);
         $map['{{CURRENT_CODE}}'] = self::current_code($version, $conversation, true);
         $map[self::PLACEHOLDER_TECHNICAL] = self::technical_rules((bool)$simgen->savestate, $version->codetype,
-            $conversation);
+            $conversation, self::duration_minutes($simgen));
         return self::fill($template, $map);
     }
 
@@ -102,10 +102,13 @@ class prompt_builder {
      * @return string
      */
     private static function current_code(stdClass $version, bool $conversation, bool $forrevision): string {
+        // The schedule is revised together with the code (the guide uses it for its time plan).
+        $plan = time_plan::from_version($version);
+        $current = $plan ? "```json\n" . time_plan::to_json($plan, true) . "\n```\n\n" : '';
         if ($version->codetype === 'html') {
-            return "```html\n" . $version->sourcecode . "\n```";
+            return $current . "```html\n" . $version->sourcecode . "\n```";
         }
-        $current = "```css\n" . ($version->css ?? '') . "\n```\n\n";
+        $current .= "```css\n" . ($version->css ?? '') . "\n```\n\n";
         if ($conversation) {
             $personas = array_values(conversation::from_version($version));
             if ($personas) {
@@ -152,17 +155,67 @@ class prompt_builder {
      * @param bool $conversation live conversations with AI personas
      * @return string
      */
-    public static function technical_rules(bool $savestate, string $codetype, bool $conversation = false): string {
+    public static function technical_rules(bool $savestate, string $codetype, bool $conversation = false,
+            int $minutes = 0): string {
         if ($codetype === 'html') {
-            return prompt_templates::TECHNICAL_HTML;
+            return strtr(prompt_templates::TECHNICAL_HTML, ['{{TIME_RULES}}' => self::time_rules($minutes)]);
         }
         return strtr(prompt_templates::TECHNICAL_REACT, [
             '{{SAVESTATE_RULES}}' => $savestate ? prompt_templates::SAVESTATE_ON : prompt_templates::SAVESTATE_OFF,
             '{{MATH_RULES}}' => prompt_templates::MATH_RULES,
             '{{CONVERSATION_RULES}}' => $conversation ? prompt_templates::CONVERSATION_RULES : '',
+            '{{TIME_RULES}}' => self::time_rules($minutes),
             '{{OUTPUT_FORMAT}}' => $conversation ? prompt_templates::OUTPUT_REACT_CONVERSATION
                 : prompt_templates::OUTPUT_REACT,
         ]);
+    }
+
+    /**
+     * Working time of the briefing in minutes (limited by the admin setting).
+     *
+     * @param stdClass $simgen
+     * @return int 0 if not specified
+     */
+    public static function duration_minutes(stdClass $simgen): int {
+        return max(0, min((int)($simgen->durationmin ?? 0), self::max_duration()));
+    }
+
+    /**
+     * Rough structure for a working time: introduction, tasks and conclusion in minutes.
+     *
+     * Long simulations get longer tasks (several sub-steps) instead of more tasks, so the code stays within the
+     * output limit of the model.
+     *
+     * @param int $minutes working time
+     * @return array ['intro' => int, 'tasks' => int, 'pertask' => int, 'outro' => int]
+     */
+    public static function time_budget(int $minutes): array {
+        $intro = $minutes <= 10 ? 1 : 2;
+        $outro = max(2, (int)round($minutes * 0.15));
+        $core = max(2, $minutes - $intro - $outro);
+        $tasks = max(1, min(8, (int)round($core / 4)));
+        return ['intro' => $intro, 'tasks' => $tasks, 'pertask' => max(2, (int)round($core / $tasks)),
+            'outro' => $outro];
+    }
+
+    /**
+     * Rules for the working time, the activation of the learners and the schedule (part of the runtime contract).
+     *
+     * @param int $minutes working time, 0 = not specified
+     * @return string
+     */
+    public static function time_rules(int $minutes): string {
+        if ($minutes > 0) {
+            $b = self::time_budget($minutes);
+            $target = "Die Lernenden sollen sich {$minutes} Minuten aktiv mit der Simulation beschäftigen.";
+            $budget = "- Richtwert für den Aufbau: Einstieg ca. {$b['intro']} Min. · {$b['tasks']} Aufträge à ca. "
+                . "{$b['pertask']} Min." . ($b['pertask'] > 5 ? ' (mit mehreren Teilschritten)' : '')
+                . " · Abschluss mit Zusammenfassung und Reflexion ca. {$b['outro']} Min.\n";
+        } else {
+            $target = 'Die Bearbeitungszeit ist nicht angegeben; plane eine fokussierte Simulation von etwa 15 Minuten.';
+            $budget = '';
+        }
+        return strtr(prompt_templates::TIME_RULES, ['{{TIME_TARGET}}' => $target, '{{TIME_BUDGET}}' => $budget]);
     }
 
     /**
@@ -174,7 +227,7 @@ class prompt_builder {
      */
     public static function briefing_placeholders(stdClass $simgen, context_module $context): array {
         $none = '(keine Angabe)';
-        $minutes = min((int)$simgen->durationmin, self::max_duration());
+        $minutes = self::duration_minutes($simgen);
         $duration = $minutes > 0 ? ($minutes . ' Minuten') : $none;
 
         $description = trim(content_to_text((string)($simgen->intro ?? ''), (int)($simgen->introformat ?? FORMAT_HTML)));

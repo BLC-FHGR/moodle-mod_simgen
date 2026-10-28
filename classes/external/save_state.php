@@ -33,6 +33,9 @@ class save_state extends external_api {
     /** @var int default maximum state size in KB */
     const DEFAULT_MAX_KB = 512;
 
+    /** @var int maximum active working time added by one call in seconds */
+    const MAX_ACTIVE_STEP = 900;
+
     /**
      * Parameters.
      *
@@ -47,6 +50,8 @@ class save_state extends external_api {
                 NULL_ALLOWED),
             'maxscore' => new external_value(PARAM_FLOAT, 'Maximum score', VALUE_DEFAULT, null, NULL_ALLOWED),
             'summary' => new external_value(PARAM_TEXT, 'Result summary', VALUE_DEFAULT, ''),
+            'activeseconds' => new external_value(PARAM_INT, 'Active working time since the last call (seconds)',
+                VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -59,10 +64,11 @@ class save_state extends external_api {
      * @param float|null $score
      * @param float|null $maxscore
      * @param string $summary
+     * @param int $activeseconds
      * @return array
      */
     public static function execute(int $cmid, string $state = '', bool $completed = false, ?float $score = null,
-            ?float $maxscore = null, string $summary = ''): array {
+            ?float $maxscore = null, string $summary = '', int $activeseconds = 0): array {
         global $DB, $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -72,6 +78,7 @@ class save_state extends external_api {
             'score' => $score,
             'maxscore' => $maxscore,
             'summary' => $summary,
+            'activeseconds' => $activeseconds,
         ]);
         [$course, $cm] = get_course_and_cm_from_cmid($params['cmid'], 'simgen');
         $context = \context_module::instance($cm->id);
@@ -131,6 +138,17 @@ class save_state extends external_api {
             $update->summary = \core_text::substr($params['summary'], 0, 4000);
         }
         $DB->update_record('simgen_states', $update);
+
+        // Active working time, measured by the player (atomic, parallel calls like beacons must not lose time;
+        // a single call never adds more than MAX_ACTIVE_STEP).
+        $seconds = max(0, min(self::MAX_ACTIVE_STEP, (int)$params['activeseconds']));
+        if ($seconds) {
+            $DB->execute('UPDATE {simgen_states} SET activetime = activetime + ? WHERE id = ?', [$seconds, $record->id]);
+        }
+        if ($newlycompleted) {
+            // Time until the first completion (comparable with the planned working time).
+            $DB->execute('UPDATE {simgen_states} SET completedactivetime = activetime WHERE id = ?', [$record->id]);
+        }
 
         if ($newlycompleted) {
             $completion = new \completion_info($course);

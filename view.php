@@ -31,6 +31,8 @@ use mod_simgen\local\code_checker;
 use mod_simgen\local\generator;
 use mod_simgen\local\guide_generator;
 use mod_simgen\local\html_builder;
+use mod_simgen\local\prompt_builder;
+use mod_simgen\local\time_plan;
 
 $id = required_param('id', PARAM_INT);
 $versionid = optional_param('version', 0, PARAM_INT);
@@ -173,6 +175,15 @@ if ($canmanage) {
             'iserror' => ($issue['severity'] ?? '') === code_checker::ERROR,
         ], $issues)) : [];
         $panel['version']['hascheckissues'] = !empty($panel['version']['checkissues']);
+
+        // Schedule planned by the AI.
+        $plan = time_plan::from_version($current);
+        $panel['version']['timeplan'] = $plan;
+        $panel['version']['hastimeplan'] = !empty($plan);
+        $panel['version']['timeplantotal'] = get_string('timeplan_total', 'mod_simgen', (object)[
+            'planned' => time_plan::total($plan),
+            'minutes' => prompt_builder::duration_minutes($simgen) ?: '–',
+        ]);
         $panel['nopublished'] = empty($simgen->publishedversion);
         $panel['publishedinfo'] = !empty($simgen->publishedversion) && isset($versions[$simgen->publishedversion])
             ? get_string('publishedinfo', 'mod_simgen', $versions[$simgen->publishedversion]->versionnum) : '';

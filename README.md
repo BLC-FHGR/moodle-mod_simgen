@@ -34,6 +34,15 @@ Studierende ◄──── sandboxed iframe (sim.php) ◄──── veröffen
 - **Formeln und mathematische Grafiken** (ab 0.3): KaTeX und JSXGraph sind im Plugin enthalten, siehe unten.
 - **Leitfaden für Lehrpersonen** (ab 0.4): Brief, Durchführung und Debrief zur fertigen Simulation, siehe unten.
 - **Qualitätsschranke** (ab 0.5): automatische Code-Prüfung, Test in der Vorschau, automatische Korrektur und vorkompilierter Code für Studierende, siehe unten.
+- **Bearbeitungszeit steuern** (ab 0.5.1): Zeitbudget im Prompt, Ablaufplan mit Prüfung und gemessene aktive Zeit in der Auswertung, siehe unten.
+
+## Bearbeitungszeit steuern (ab Version 0.5.1)
+
+Sprachmodelle unterschätzen die Lernzeit systematisch: Eine «20-Minuten-Simulation» ist oft in 5 Minuten durchgeklickt. Drei Massnahmen greifen ineinander:
+
+1. **Zeitbudget im Prompt** (`prompt_templates::TIME_RULES`, Teil des nicht editierbaren Laufzeit-Vertrags, also auch bei angepassten Vorlagen aktiv): Die Bearbeitungszeit wird in einen Richtwert übersetzt (`prompt_builder::time_budget()`, z. B. 20 Min. → Einstieg 2 · 4 Aufträge à 4 · Abschluss 3). Längere Simulationen bekommen längere Aufträge statt mehr Aufträge (höchstens 8), damit der Code ins Ausgabelimit passt. Dazu kommen Regeln zur Aktivierung: Zyklus Vorhersage → Ausprobieren/Rechnen → Rückmeldung, «Weiter» erst nach eigener Eingabe, kurze Lesetexte.
+2. **Ablaufplan** (`classes/local/time_plan.php`): Die KI gibt vor dem Code einen JSON-Block `{"plan": [{"phase", "activity", "minutes"}]}` aus. Er wird gespeichert, in den Versionsdetails als Tabelle angezeigt, bei Überarbeitungen und für den Leitfaden mitgegeben. Die Code-Prüfung meldet einen Fehler, wenn der Plan unter 75 % der Bearbeitungszeit liegt (→ automatische Korrektur), und einen Hinweis bei fehlendem Plan oder über 150 %.
+3. **Gemessene Zeit**: Der Player zählt die aktive Zeit (Seite sichtbar und Aktivität in der Simulation in den letzten 2 Minuten; die Runtime meldet höchstens alle 15 Sekunden ein Aktivitätssignal ohne Inhalt) und sendet sie mit dem nächsten Speichern bzw. beim Verlassen der Seite (`activeseconds` in `mod_simgen_save_state`, höchstens 15 Min. pro Aufruf). Gespeichert werden die gesamte aktive Zeit und die Zeit bis zum ersten Abschluss. Die Auswertung zeigt beides pro Person und den Median im Vergleich zur geplanten Zeit. Ab 3 Abschlüssen und einem Median unter 75 % der geplanten Zeit erscheint «Umfang erweitern» mit vorausgefülltem Überarbeitungsauftrag für die veröffentlichte Version.
 
 ## Qualitätsschranke (ab Version 0.5)
 

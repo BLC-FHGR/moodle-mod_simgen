@@ -169,6 +169,25 @@
                             <dd class="col-sm-9"><pre class="mod-simgen-pre mod-simgen-scroll">{{checkerror}}</pre></dd>
                         {{/checkerror}}
                     </dl>
+                    {{#hastimeplan}}
+                        <details class="mt-2">
+                            <summary>{{#str}}timeplan, mod_simgen{{/str}} ({{timeplantotal}})</summary>
+                            <table class="table table-sm mt-2 mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{#str}}timeplan_phase, mod_simgen{{/str}}</th>
+                                        <th scope="col">{{#str}}timeplan_activity, mod_simgen{{/str}}</th>
+                                        <th scope="col" class="text-end">{{#str}}timeplan_minutes, mod_simgen{{/str}}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#timeplan}}
+                                        <tr><td>{{phase}}</td><td>{{activity}}</td><td class="text-end">{{minutes}}</td></tr>
+                                    {{/timeplan}}
+                                </tbody>
+                            </table>
+                        </details>
+                    {{/hastimeplan}}
                     {{#haspersonas}}
                         <details class="mt-2">
                             <summary>{{#str}}showpersonas, mod_simgen{{/str}}</summary>

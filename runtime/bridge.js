@@ -53,6 +53,19 @@
         }
     }
 
+    // Activity signal for measuring the active working time (at most every 15 seconds; no content is sent).
+    var lastActivityPost = 0;
+    function activity() {
+        var now = Date.now();
+        if (now - lastActivityPost >= 15000) {
+            lastActivityPost = now;
+            post({type: 'activity'});
+        }
+    }
+    ['pointerdown', 'keydown', 'input', 'wheel'].forEach(function(type) {
+        document.addEventListener(type, activity, {capture: true, passive: true});
+    });
+
     function clone(value) {
         try {
             return JSON.parse(JSON.stringify(value));

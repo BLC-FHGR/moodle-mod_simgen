@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.5.1 (2026-10-28)
+
+- Bearbeitungszeit steuern: Der Prompt übersetzt die Bearbeitungszeit in ein verbindliches Zeitbudget (Einstieg, Anzahl Aufträge à Minuten, Abschluss) und verlangt Aktivierung statt Durchklicken («Weiter» erst nach eigener Eingabe, Rückmeldung erst nach der Vorhersage). Der Satz «lieber fokussiert als überladen» entfällt.
+- Ablaufplan: Die KI liefert vor dem Code einen Ablaufplan (Phasen und Aufträge mit Minuten). Er wird pro Version gespeichert, in den Versionsdetails angezeigt, bei Überarbeitungen mitgegeben und vom Leitfaden genutzt. Deckt er weniger als 75 % der Bearbeitungszeit ab, greift die automatische Korrektur.
+- Gemessene Bearbeitungszeit: Der Player misst die aktive Zeit der Lernenden (Seite sichtbar und Aktivität in den letzten 2 Minuten). Die Auswertung zeigt sie pro Person und vergleicht den Median bis zum Abschluss mit der geplanten Zeit. Ist die Simulation deutlich zu kurz (mind. 3 Abschlüsse), bietet sie «Umfang erweitern» mit vorausgefülltem Überarbeitungsauftrag an.
+- Neue Felder `simgen_versions.timeplan`, `simgen_states.activetime` und `completedactivetime` (inkl. Backup/Restore und Privacy-API).
+
 ## 0.5.0 (2026-10-28)
 
 - Qualitätsschranke: Jede neue Version wird automatisch geprüft, bevor Lehrpersonen damit arbeiten.

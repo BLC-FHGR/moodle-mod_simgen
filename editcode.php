@@ -77,6 +77,8 @@ if ($form->is_cancelled()) {
         'css' => $data->codetype === 'html' ? '' : (string)$data->css,
         'personas' => $personas ? json_encode(['personas' => array_values($personas)],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        // The schedule describes the same simulation and stays.
+        'timeplan' => $version ? ($version->timeplan ?? null) : null,
         'prompttext' => null,
         'rawresponse' => null,
         'revisionnote' => trim((string)$data->revisionnote) ?: get_string('origin_manual', 'mod_simgen'),

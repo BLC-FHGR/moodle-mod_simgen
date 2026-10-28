@@ -112,5 +112,28 @@ function xmldb_simgen_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026102800, 'simgen');
     }
 
+    if ($oldversion < 2026102801) {
+        // Working time: schedule per version and measured active time per user.
+        $table = new xmldb_table('simgen_versions');
+        $field = new xmldb_field('timeplan', XMLDB_TYPE_TEXT, null, null, null, null, null, 'compiledhash');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $table = new xmldb_table('simgen_states');
+        $fields = [
+            new xmldb_field('activetime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timecompleted'),
+            new xmldb_field('completedactivetime', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
+                'activetime'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026102801, 'simgen');
+    }
+
     return true;
 }

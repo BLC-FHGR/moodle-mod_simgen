@@ -110,6 +110,25 @@ export const init = async(opts) => {
         });
     };
 
+    // Active working time: counted while the page is visible and the learner was active in the last two minutes;
+    // sent along with the next save (or on page leave / completion).
+    const IDLE_AFTER = 120000;
+    const TICK = 5;
+    let lastActivity = Date.now();
+    let activeSeconds = 0;
+    if (opts.cansave) {
+        setInterval(() => {
+            if (document.visibilityState === 'visible' && Date.now() - lastActivity < IDLE_AFTER) {
+                activeSeconds += TICK;
+            }
+        }, TICK * 1000);
+    }
+    const takeActiveSeconds = () => {
+        const seconds = activeSeconds;
+        activeSeconds = 0;
+        return seconds;
+    };
+
     // Saving (serialised; while the page is being left a beacon is used instead of AJAX).
     let saving = false;
     let pending = null;
@@ -119,8 +138,14 @@ export const init = async(opts) => {
             return false;
         }
         const url = Config.wwwroot + '/lib/ajax/service.php?sesskey=' + Config.sesskey + '&info=mod_simgen_save_state';
-        const body = JSON.stringify([{index: 0, methodname: 'mod_simgen_save_state', args: {cmid: opts.cmid, state}}]);
-        return navigator.sendBeacon(url, new Blob([body], {type: 'application/json'}));
+        const seconds = takeActiveSeconds();
+        const args = {cmid: opts.cmid, state, activeseconds: seconds};
+        const body = JSON.stringify([{index: 0, methodname: 'mod_simgen_save_state', args}]);
+        if (navigator.sendBeacon(url, new Blob([body], {type: 'application/json'}))) {
+            return true;
+        }
+        activeSeconds += seconds;
+        return false;
     };
 
     const doSave = () => {
@@ -131,10 +156,14 @@ export const init = async(opts) => {
         pending = null;
         saving = true;
         setStatus(sSaving);
+        const seconds = takeActiveSeconds();
         // Note: Ajax.call returns jQuery promises, which have no finally().
-        call('mod_simgen_save_state', {cmid: opts.cmid, state})
+        call('mod_simgen_save_state', {cmid: opts.cmid, state, activeseconds: seconds})
             .then(() => setStatus(sSaved.replace('{$a}', timeNow())))
-            .catch(() => setStatus(sSaveError))
+            .catch(() => {
+                activeSeconds += seconds;
+                setStatus(sSaveError);
+            })
             .then(() => {
                 saving = false;
                 doSave();
@@ -170,12 +199,16 @@ export const init = async(opts) => {
         if (typeof d.maxScore === 'number' && isFinite(d.maxScore)) {
             args.maxscore = d.maxScore;
         }
+        args.activeseconds = takeActiveSeconds();
         call('mod_simgen_save_state', args)
             .then(() => {
                 setStatus(sCompleted);
                 return addToast(sCompleted);
             })
-            .catch(Notification.exception);
+            .catch((e) => {
+                activeSeconds += args.activeseconds;
+                Notification.exception(e);
+            });
     };
 
     const resize = (height) => {
@@ -314,7 +347,11 @@ export const init = async(opts) => {
                 handleHello();
                 break;
             case 'save':
+                lastActivity = Date.now();
                 queueSave(d.state);
+                break;
+            case 'activity':
+                lastActivity = Date.now();
                 break;
             case 'complete':
                 handleComplete(d);
@@ -349,6 +386,10 @@ export const init = async(opts) => {
     // Ask the simulation to flush unsaved changes when the page is left.
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden' && frame.contentWindow) {
+            // The working time is sent now; a state saved by the flush follows separately.
+            if (opts.cansave && activeSeconds > 0) {
+                beaconSave('');
+            }
             send({type: 'flush'});
         }
     });
