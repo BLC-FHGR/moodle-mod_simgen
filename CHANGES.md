@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.2 (2026-10-28)
+
+- JSXGraph-Texte: `board.create('text', [x, y], { name: … })` (Beschriftung als Attribut statt als drittes Element) brach mit «Can't create text with parent types 'number' and 'number'» ab. `<MathBoard>` ergänzt die Beschriftung jetzt automatisch (aus `name`, `text` oder `label`); wirkt sofort auch für bestehende Simulationen.
+- Prompt: Regel und Beispiel für Beschriftungen im Board (`[x, y, 'Text']`).
+
 ## 0.5.1 (2026-10-28)
 
 - Bearbeitungszeit steuern: Der Prompt übersetzt die Bearbeitungszeit in ein verbindliches Zeitbudget (Einstieg, Anzahl Aufträge à Minuten, Abschluss) und verlangt Aktivierung statt Durchklicken («Weiter» erst nach eigener Eingabe, Rückmeldung erst nach der Vorhersage). Der Satz «lieber fokussiert als überladen» entfällt.

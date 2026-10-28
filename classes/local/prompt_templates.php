@@ -214,6 +214,7 @@ EOT;
   ```
   - `boundingBox` ist [xmin, ymax, xmax, ymin]. `draw(board, handles)` zeichnet alles, was vom React-Zustand abhängt, und wird automatisch neu gezeichnet, sobald sich ein Wert in `deps` ändert (die alten Elemente werden vorher entfernt). Nimm alle in draw verwendeten Zustandswerte in `deps` auf.
   - Ziehbare Punkte erstellst du in `setup={(board) => { const P = board.create('point', [1, 2], { name: 'P' }); return { P }; }}`. setup wird einmal aufgerufen; der Rückgabewert steht in draw als `handles` zur Verfügung. Elemente, die von einem ziehbaren Punkt abhängen, definierst du mit Funktionen, z. B. `[() => P.X(), 0]` – JSXGraph aktualisiert sie selbst. Werte meldest du mit `P.on('drag', () => setX(P.X()))` an React; solche Werte gehören nicht in deps.
+  - Beschriftungen im Board: `board.create('text', [x, y, 'Break-even'])` – der Text ist IMMER das dritte Element des Arrays (bei veränderlichen Werten eine Funktion, z. B. `[x, y, () => 'Q = ' + q]`), nie ein Attribut wie `{ name: … }`. `board.create('text', [x, y], …)` ohne drittes Element bricht ab.
   - Weitere Props: `axis` (Standard true), `grid`, `keepAspectRatio`, `title` (kurze Beschreibung für Screenreader). Rufe nie selbst JXG.JSXGraph.initBoard auf und vergib keine ids.
   - Schieberegler, Eingabefelder und Erklärungen gehören in die React-Oberfläche neben das Board, nicht ins Board.
 - Andere Grafiken (Diagramme, technische Skizzen, Schaubilder) zeichnest du weiterhin selbst mit SVG.

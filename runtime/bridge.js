@@ -860,6 +860,30 @@
 
     var boardCounter = 0;
 
+    function isCoordinate(value) {
+        return typeof value === 'number' || typeof value === 'function';
+    }
+
+    /**
+     * Repairs a frequent mistake of language models: the label of a text is passed as attribute
+     * (create('text', [x, y], {name: '…'})) instead of as third parent ([x, y, '…']), which JSXGraph rejects.
+     *
+     * @param {Object} board
+     */
+    function patchBoard(board) {
+        var create = board.create;
+        board.create = function(type, parents, attributes) {
+            if (String(type).toLowerCase() === 'text' && Array.isArray(parents) && parents.length === 2
+                    && isCoordinate(parents[0]) && isCoordinate(parents[1])) {
+                var a = attributes || {};
+                var label = a.text !== undefined ? a.text : (a.name !== undefined ? a.name
+                    : (a.label !== undefined ? a.label : ''));
+                parents = parents.concat([label]);
+            }
+            return create.call(this, type, parents, attributes);
+        };
+    }
+
     /**
      * Interactive JSXGraph board.
      *
@@ -910,6 +934,7 @@
                 showError(STR.errortitle, e, false);
                 return undefined;
             }
+            patchBoard(board);
             boardRef.current = board;
             if (typeof p.setup === 'function') {
                 board.suspendUpdate();
