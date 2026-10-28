@@ -66,6 +66,7 @@ $string['error_rawresponse'] = 'Beginning of the AI response:';
 $string['error_stale'] = 'The generation did not finish (time-out or server restart). Please try again.';
 $string['error_statetoolarge'] = 'The progress is too large to be saved (maximum {$a} KB).';
 $string['error_unexpected'] = 'Unexpected error: {$a}';
+$string['error_versionchanged'] = 'This simulation has been updated in the meantime. Please reload the page. Until then, your progress is not saved and conversations are not available.';
 $string['errorreport_fix'] = 'Let the AI fix the error';
 $string['errorreport_help'] = 'Only teachers see this note. Students see a short error message inside the simulation.';
 $string['errorreport_title'] = 'The simulation reported an error';

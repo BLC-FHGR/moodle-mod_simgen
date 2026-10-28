@@ -209,13 +209,20 @@ class conversation {
      * Version a user may talk to: the published one, or (for teachers) the previewed one.
      *
      * @param stdClass $simgen
-     * @param int $versionid requested version
+     * @param int $versionid version shown on the page (0 = the published one)
      * @param context_module $context
      * @return stdClass
+     * @throws moodle_exception if the page of a learner still shows a version that is no longer published
      */
     public static function resolve_version(stdClass $simgen, int $versionid, context_module $context): stdClass {
         global $DB;
-        if (!$versionid || !has_capability('mod/simgen:manage', $context)) {
+        if (!has_capability('mod/simgen:manage', $context)) {
+            if ($versionid && $versionid !== (int)$simgen->publishedversion) {
+                // The page still runs the code of an older version: its personas and history do not match.
+                throw new moodle_exception('error_versionchanged', 'mod_simgen');
+            }
+            $versionid = (int)$simgen->publishedversion;
+        } else if (!$versionid) {
             $versionid = (int)$simgen->publishedversion;
         }
         $version = $versionid ? $DB->get_record('simgen_versions', ['id' => $versionid, 'simgenid' => $simgen->id]) : false;

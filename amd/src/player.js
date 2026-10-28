@@ -70,13 +70,24 @@ export const init = async(opts) => {
         {key: 'check_badge_passed', component: 'mod_simgen'},
         {key: 'check_badge_failed', component: 'mod_simgen'},
         {key: 'check_repairqueued', component: 'mod_simgen'},
+        {key: 'error_versionchanged', component: 'mod_simgen'},
     ]);
     const [sSaving, sSaved, sSaveError, sCompleted, sResetTitle, sResetConfirm, sReset, sPrefill,
-        sCheckPassed, sCheckFailed, sRepairQueued] = str;
+        sCheckPassed, sCheckFailed, sRepairQueued, sVersionChanged] = str;
 
     const setStatus = (text) => {
         if (statusEl) {
             statusEl.textContent = text;
+        }
+    };
+
+    // A newer version was published while the page was open: the server no longer stores the state of this code.
+    let versionNoticeShown = false;
+    const versionChanged = () => {
+        setStatus(sVersionChanged);
+        if (!versionNoticeShown) {
+            versionNoticeShown = true;
+            addToast(sVersionChanged, {type: 'warning', autohide: false, closeButton: true}).catch(() => null);
         }
     };
     const timeNow = () => new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
@@ -139,7 +150,7 @@ export const init = async(opts) => {
         }
         const url = Config.wwwroot + '/lib/ajax/service.php?sesskey=' + Config.sesskey + '&info=mod_simgen_save_state';
         const seconds = takeActiveSeconds();
-        const args = {cmid: opts.cmid, state, activeseconds: seconds};
+        const args = {cmid: opts.cmid, state, activeseconds: seconds, versionid: opts.versionid || 0};
         const body = JSON.stringify([{index: 0, methodname: 'mod_simgen_save_state', args}]);
         if (navigator.sendBeacon(url, new Blob([body], {type: 'application/json'}))) {
             return true;
@@ -158,8 +169,15 @@ export const init = async(opts) => {
         setStatus(sSaving);
         const seconds = takeActiveSeconds();
         // Note: Ajax.call returns jQuery promises, which have no finally().
-        call('mod_simgen_save_state', {cmid: opts.cmid, state, activeseconds: seconds})
-            .then(() => setStatus(sSaved.replace('{$a}', timeNow())))
+        call('mod_simgen_save_state', {cmid: opts.cmid, state, activeseconds: seconds, versionid: opts.versionid || 0})
+            .then((result) => {
+                if (result.versionchanged) {
+                    versionChanged();
+                } else {
+                    setStatus(sSaved.replace('{$a}', timeNow()));
+                }
+                return null;
+            })
             .catch(() => {
                 activeSeconds += seconds;
                 setStatus(sSaveError);
@@ -189,7 +207,8 @@ export const init = async(opts) => {
         if (!opts.cansave) {
             return;
         }
-        const args = {cmid: opts.cmid, completed: true, summary: String(d.summary || '').slice(0, 4000)};
+        const args = {cmid: opts.cmid, completed: true, summary: String(d.summary || '').slice(0, 4000),
+            versionid: opts.versionid || 0};
         if (persist && typeof d.state === 'string') {
             args.state = d.state;
         }
@@ -201,8 +220,11 @@ export const init = async(opts) => {
         }
         args.activeseconds = takeActiveSeconds();
         call('mod_simgen_save_state', args)
-            .then(() => {
+            .then((result) => {
                 setStatus(sCompleted);
+                if (result.versionchanged) {
+                    versionChanged();
+                }
                 return addToast(sCompleted);
             })
             .catch((e) => {
