@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.5.0 (2026-10-28)
+
+- Qualitätsschranke: Jede neue Version wird automatisch geprüft, bevor Lehrpersonen damit arbeiten.
+  - Code-Prüfung direkt nach der Generierung (`code_checker`): fehlende `App`, abgeschnittener Code, `localStorage`/Netzwerkzugriffe und externe Ressourcen (in der Sandbox blockiert), doppelte `useSimState`-Schlüssel, unbekannte Gesprächsfiguren, fehlendes `SimBridge.complete` (Fehler bei aktivierter Abschlussbedingung, sonst Hinweis).
+  - Test beim ersten Öffnen in der Vorschau: Tritt beim Start ein Fehler auf, wird er gespeichert und angezeigt (Badge «Test bestanden / Fehler / ausstehend»).
+  - Automatische Korrektur: Findet die Prüfung oder der Test Fehler in einer KI-Version, überarbeitet die KI sie selbständig (neue Herkunft «Automatische Korrektur»), höchstens so viele Runden hintereinander wie in der neuen Einstellung `autorepair` (Standard 2). Manuell bearbeiteter Code wird nie automatisch verändert.
+- Vorkompilierter Code: Besteht eine React-Version den Test, wird der im Browser der Lehrperson kompilierte Code gespeichert. Studierende laden dann kein Babel mehr (~3 MB) und der Code wird nicht bei jedem Aufruf neu übersetzt. Ändert sich der Code oder die Babel-Version, wird wieder aus dem Quelltext kompiliert.
+- Neuer Webservice `mod_simgen_report_check`; neue Felder in `simgen` und `simgen_versions` (inkl. Backup/Restore).
+
 ## 0.4.1 (2026-10-21)
 
 - Fehler in `db/install.xml` behoben (fehlendes Leerzeichen vor `COMMENT`): Die Neuinstallation brach mit «XML database file errors found» (`ddlxmlfileerror`) ab.

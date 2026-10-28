@@ -7,8 +7,9 @@
  *  - window.useSimState(key, initial): a persisted variant of React.useState,
  *  - window.Formula and window.MathBoard: math building blocks (KaTeX and JSXGraph, bundled in runtime/lib),
  *  - error handling (overlay + report to the Moodle page so teachers can let the AI fix the error),
- *  - automatic height reporting and
- *  - JSX compilation (Babel) and mounting of the generated React component "App".
+ *  - automatic height reporting,
+ *  - JSX compilation (Babel) and mounting of the generated React component "App" (or the precompiled code) and
+ *  - the start-up check of new versions in the teacher preview (result and compiled code go to the Moodle page).
  *
  * The document runs with an opaque origin (sandbox without allow-same-origin): it can neither read Moodle cookies
  * nor call Moodle APIs directly. All persistence goes through the parent page, which only stores data for the
@@ -73,6 +74,30 @@
     var lastReported = '';
     var fatalShown = false;
 
+    // Automatic check of new versions (teacher preview): the first error during start-up fails the check.
+    var CHECK_DELAY = 3000;
+    var checkDone = false;
+    var checkError = null;
+    var compiledResult = null;
+
+    /**
+     * Reports the result of the start-up check to the Moodle page (once), with the compiled code if it ran without
+     * errors, so students do not need to load and run Babel.
+     */
+    function concludeCheck() {
+        if (checkDone || !CFG.check) {
+            return;
+        }
+        checkDone = true;
+        var msg = {type: 'check', ok: !checkError, error: checkError || ''};
+        if (!checkError && compiledResult) {
+            msg.compiled = compiledResult.code;
+            msg.appName = compiledResult.appName;
+            msg.selfRender = compiledResult.selfRender;
+        }
+        post(msg);
+    }
+
     function describe(err) {
         if (!err) {
             return 'Unknown error';
@@ -120,6 +145,9 @@
             lines.shift();
         }
         var stack = lines.slice(0, 8).join('\n') + (extra || '');
+        if (!checkDone && !checkError) {
+            checkError = message + (stack ? '\n\n' + stack : '');
+        }
 
         // Report each error once (React development builds re-throw render errors), but always report fatal ones.
         var signature = message + '|' + !!fatal;
@@ -1121,8 +1149,12 @@
     }
 
     function mountReact() {
+        // Published versions that passed the check come precompiled (no Babel needed).
+        var precompiled = typeof CFG.compiled === 'string' && CFG.compiled !== '';
         if (typeof window.React === 'undefined' || typeof window.ReactDOM === 'undefined'
-                || typeof window.Babel === 'undefined') {
+                || (!precompiled && typeof window.Babel === 'undefined')) {
+            // A network problem says nothing about the code: no check result.
+            checkDone = true;
             showError(STR.libsfailed, new Error('React, ReactDOM or Babel could not be loaded.'), true);
             return;
         }
@@ -1133,21 +1165,29 @@
             }
         });
 
-        var src = String(CFG.source || '');
-        var appName = 'App';
-        var m = src.match(/export\s+default\s+(?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/);
-        if (m && m[1] !== 'function' && m[1] !== 'class' && m[1] !== 'async') {
-            appName = m[1];
-        }
-        src = preprocess(src);
-        var selfRender = /\bReactDOM\s*\.\s*(createRoot|render)\s*\(|(^|[^.\w])createRoot\s*\(/.test(src);
-
         var compiled;
-        try {
-            compiled = transform(src);
-        } catch (e) {
-            showError(STR.compileerror, e, true);
-            return;
+        var appName = 'App';
+        var selfRender = false;
+        if (precompiled) {
+            compiled = CFG.compiled;
+            appName = CFG.appName || 'App';
+            selfRender = !!CFG.selfRender;
+        } else {
+            var src = String(CFG.source || '');
+            var m = src.match(/export\s+default\s+(?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/);
+            if (m && m[1] !== 'function' && m[1] !== 'class' && m[1] !== 'async') {
+                appName = m[1];
+            }
+            src = preprocess(src);
+            selfRender = /\bReactDOM\s*\.\s*(createRoot|render)\s*\(|(^|[^.\w])createRoot\s*\(/.test(src);
+
+            try {
+                compiled = transform(src);
+            } catch (e) {
+                showError(STR.compileerror, e, true);
+                return;
+            }
+            compiledResult = {code: compiled, appName: appName, selfRender: selfRender};
         }
 
         window.__simgenApp = null;
@@ -1190,15 +1230,20 @@
                 showError(STR.errortitle, e, true);
             }
             startResize();
+            setTimeout(concludeCheck, CHECK_DELAY);
         });
     };
 
     if (CFG.codetype !== 'react') {
         // Complete HTML documents run themselves; only start the height reporting.
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', startResize);
-        } else {
+        var startHtml = function() {
             startResize();
+            setTimeout(concludeCheck, CHECK_DELAY);
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startHtml);
+        } else {
+            startHtml();
         }
     }
 })();

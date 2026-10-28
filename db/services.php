@@ -81,4 +81,11 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/simgen:manage',
     ],
+    'mod_simgen_report_check' => [
+        'classname' => \mod_simgen\external\report_check::class,
+        'description' => 'Stores the result of the start-up check of a version and its compiled code.',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/simgen:manage',
+    ],
 ];

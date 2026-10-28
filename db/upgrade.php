@@ -86,5 +86,31 @@ function xmldb_simgen_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026101900, 'simgen');
     }
 
+    if ($oldversion < 2026102800) {
+        // Quality gate: static checks, start-up check, automatic repair and precompiled code.
+        $table = new xmldb_table('simgen');
+        $field = new xmldb_field('pendingautorepair', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0',
+            'pendingbaseversion');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $table = new xmldb_table('simgen_versions');
+        $fields = [
+            new xmldb_field('checkissues', XMLDB_TYPE_TEXT, null, null, null, null, null, 'guidemodified'),
+            new xmldb_field('checkstatus', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'checkissues'),
+            new xmldb_field('checkerror', XMLDB_TYPE_TEXT, null, null, null, null, null, 'checkstatus'),
+            new xmldb_field('compiled', XMLDB_TYPE_TEXT, null, null, null, null, null, 'checkerror'),
+            new xmldb_field('compiledhash', XMLDB_TYPE_CHAR, '40', null, null, null, null, 'compiled'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026102800, 'simgen');
+    }
+
     return true;
 }

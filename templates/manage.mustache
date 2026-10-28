@@ -43,7 +43,11 @@
             "modelinfo": "gpt-4o",
             "prompt": "...",
             "response": "...",
-            "ispublished": false
+            "ispublished": false,
+            "checkbadge": "Test bestanden",
+            "checkclass": "bg-success",
+            "hascheckissues": true,
+            "checkissues": [{"message": "Die Simulation meldet keinen Abschluss.", "iserror": false}]
         },
         "publishedinfo": "Veröffentlicht: Version 2",
         "nopublished": false,
@@ -105,6 +109,7 @@
                     {{^ispublished}}
                         <span class="badge badge-warning bg-warning text-dark">{{#str}}badge_draft, mod_simgen{{/str}}</span>
                     {{/ispublished}}
+                    <span class="badge {{checkclass}}" data-region="simgen-checkstatus" title="{{#str}}check_badge_help, mod_simgen{{/str}}">{{checkbadge}}</span>
                 {{/version}}
                 <span class="small text-muted">{{publishedinfo}}</span>
             </div>
@@ -112,6 +117,19 @@
             {{#nopublished}}
                 <div class="alert alert-warning mt-2 mb-2">{{#str}}nopublished_help, mod_simgen{{/str}}</div>
             {{/nopublished}}
+
+            {{#version}}
+                {{#hascheckissues}}
+                    <div class="alert alert-secondary mt-2 mb-2">
+                        <strong>{{#str}}check_issues_title, mod_simgen{{/str}}</strong>
+                        <ul class="mb-0">
+                            {{#checkissues}}
+                                <li>{{#iserror}}<span class="badge badge-danger bg-danger">{{#str}}check_severity_error, mod_simgen{{/str}}</span> {{/iserror}}{{message}}</li>
+                            {{/checkissues}}
+                        </ul>
+                    </div>
+                {{/hascheckissues}}
+            {{/version}}
 
             <div class="mod-simgen-actions mt-2">
                 {{#version}}
@@ -146,6 +164,10 @@
                             <dt class="col-sm-3">{{#str}}version_note, mod_simgen{{/str}}</dt>
                             <dd class="col-sm-9"><pre class="mod-simgen-pre">{{revisionnote}}</pre></dd>
                         {{/revisionnote}}
+                        {{#checkerror}}
+                            <dt class="col-sm-3">{{#str}}check_error, mod_simgen{{/str}}</dt>
+                            <dd class="col-sm-9"><pre class="mod-simgen-pre mod-simgen-scroll">{{checkerror}}</pre></dd>
+                        {{/checkerror}}
                     </dl>
                     {{#haspersonas}}
                         <details class="mt-2">

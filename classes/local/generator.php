@@ -54,9 +54,11 @@ class generator {
      * @param int $userid user on whose behalf the AI is called
      * @param string $changerequest change request (revision) or empty for a fresh generation
      * @param int $baseversionid version to revise, 0 = generate from the briefing
+     * @param bool $autorepair the revision is an automatic repair after a failed check (origin "autorepair")
      * @return bool false if a generation is currently running (nothing was queued)
      */
-    public static function queue(stdClass $simgen, int $userid, string $changerequest = '', int $baseversionid = 0): bool {
+    public static function queue(stdClass $simgen, int $userid, string $changerequest = '', int $baseversionid = 0,
+            bool $autorepair = false): bool {
         global $DB;
 
         // Never start a second AI request while one is running (costs quota twice, versions could collide).
@@ -65,23 +67,80 @@ class generator {
         if ((int)$current->status === self::STATUS_GENERATING) {
             return false;
         }
+        self::schedule((int)$simgen->id, $userid, $changerequest, $baseversionid, $autorepair);
+        return true;
+    }
+
+    /**
+     * Sets the request on the instance and queues the adhoc task (without checking the status).
+     *
+     * @param int $simgenid
+     * @param int $userid
+     * @param string $changerequest
+     * @param int $baseversionid
+     * @param bool $autorepair
+     */
+    private static function schedule(int $simgenid, int $userid, string $changerequest, int $baseversionid,
+            bool $autorepair): void {
+        global $DB;
 
         $now = time();
         $DB->update_record('simgen', (object)[
-            'id' => $simgen->id,
+            'id' => $simgenid,
             'status' => self::STATUS_PENDING,
             'statusmessage' => '',
             'genrequested' => $now,
             'genstarted' => 0,
             'pendingfeedback' => $changerequest,
             'pendingbaseversion' => $baseversionid,
+            'pendingautorepair' => $autorepair && $baseversionid ? 1 : 0,
         ]);
 
         $task = new \mod_simgen\task\generate_simulation();
         $task->set_userid($userid);
-        $task->set_custom_data(['simgenid' => (int)$simgen->id, 'requested' => $now]);
+        $task->set_custom_data(['simgenid' => $simgenid, 'requested' => $now]);
         \core\task\manager::queue_adhoc_task($task);
-        return true;
+    }
+
+    /**
+     * Maximum number of automatic repair rounds in a row (admin setting, 0 = off).
+     *
+     * @return int
+     */
+    public static function max_autorepairs(): int {
+        $value = get_config('mod_simgen', 'autorepair');
+        return $value === false ? 2 : max(0, min(5, (int)$value));
+    }
+
+    /**
+     * May the AI repair this version automatically?
+     *
+     * Only the newest version, only versions written by the AI (manual code stays as the teacher wrote it) and only
+     * a limited number of rounds in a row (the counter restarts with every request of a teacher).
+     *
+     * @param stdClass $version
+     * @return bool
+     */
+    public static function autorepair_allowed(stdClass $version): bool {
+        global $DB;
+
+        $max = self::max_autorepairs();
+        if (!$max || !in_array($version->origin, ['ai', 'revision', 'autorepair'], true)) {
+            return false;
+        }
+        $latest = $DB->get_records('simgen_versions', ['simgenid' => $version->simgenid], 'versionnum DESC',
+            'id, origin', 0, $max + 1);
+        if ((int)array_key_first($latest) !== (int)$version->id) {
+            return false;
+        }
+        $rounds = 0;
+        foreach ($latest as $v) {
+            if ($v->origin !== 'autorepair') {
+                break;
+            }
+            $rounds++;
+        }
+        return $rounds < $max;
     }
 
     /**
@@ -137,7 +196,7 @@ class generator {
             if ($baseversion) {
                 $prompt = prompt_builder::build_revision_prompt($simgen, $context, $baseversion,
                     (string)$simgen->pendingfeedback);
-                $origin = 'revision';
+                $origin = !empty($simgen->pendingautorepair) ? 'autorepair' : 'revision';
             } else {
                 $prompt = prompt_builder::build_generate_prompt($simgen, $context);
                 $origin = 'ai';
@@ -167,10 +226,9 @@ class generator {
                 }
             }
 
-            $versionnum = self::next_versionnum((int)$simgen->id);
-            $versionid = $DB->insert_record('simgen_versions', (object)[
+            $version = (object)[
                 'simgenid' => $simgen->id,
-                'versionnum' => $versionnum,
+                'versionnum' => self::next_versionnum((int)$simgen->id),
                 'codetype' => $parsed['codetype'],
                 'sourcecode' => $parsed['sourcecode'],
                 'css' => $parsed['css'],
@@ -183,7 +241,25 @@ class generator {
                 'modelinfo' => \core_text::substr($result->get_modelinfo(), 0, 255),
                 'userid' => $USER->id ?? 0,
                 'timecreated' => time(),
-            ]);
+            ];
+            // Static checks before anybody sees the version.
+            $issues = code_checker::check($simgen, $version);
+            $version->checkissues = $issues ? json_encode($issues, JSON_UNESCAPED_UNICODE) : null;
+            $version->id = $DB->insert_record('simgen_versions', $version);
+
+            \mod_simgen\event\simulation_generated::create([
+                'objectid' => $version->id,
+                'context' => $context,
+                'other' => ['versionnum' => $version->versionnum],
+            ])->trigger();
+
+            $errors = code_checker::errors($issues);
+            if ($errors && self::autorepair_allowed($version)) {
+                // Let the AI fix the errors right away; the teacher is notified once the repaired version is ready.
+                self::schedule((int)$simgen->id, (int)($USER->id ?? 0), code_checker::repair_request($errors),
+                    (int)$version->id, true);
+                return true;
+            }
 
             $DB->update_record('simgen', (object)[
                 'id' => $simgen->id,
@@ -191,15 +267,10 @@ class generator {
                 'statusmessage' => '',
                 'pendingfeedback' => '',
                 'pendingbaseversion' => 0,
+                'pendingautorepair' => 0,
                 'genstarted' => 0,
                 'timemodified' => time(),
             ]);
-
-            \mod_simgen\event\simulation_generated::create([
-                'objectid' => $versionid,
-                'context' => $context,
-                'other' => ['versionnum' => $versionnum],
-            ])->trigger();
 
             self::notify($simgen, $cm, true, '');
             return true;

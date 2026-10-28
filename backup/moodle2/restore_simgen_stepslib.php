@@ -61,6 +61,7 @@ class restore_simgen_activity_structure_step extends restore_activity_structure_
         $data->genstarted = 0;
         $data->pendingfeedback = '';
         $data->pendingbaseversion = 0;
+        $data->pendingautorepair = 0;
         // Remapped in after_execute().
         $data->publishedversion = (int)($data->publishedversion ?? 0);
         $newid = $DB->insert_record('simgen', $data);
@@ -85,6 +86,8 @@ class restore_simgen_activity_structure_step extends restore_activity_structure_
         $data->guiderequested = 0;
         $data->guidestarted = 0;
         $data->guidemodified = (int)($data->guidemodified ?? 0);
+        // Backups before 0.5 have no check results: the versions are checked again in the preview.
+        $data->checkstatus = (int)($data->checkstatus ?? 0);
         $newid = $DB->insert_record('simgen_versions', $data);
         $this->set_mapping('simgen_version', $oldid, $newid);
     }

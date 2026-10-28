@@ -356,3 +356,26 @@ $string['settings_prompt_guide'] = 'Prompt template: facilitator guide';
 $string['settings_prompt_guide_desc'] = 'Used for the facilitator guide. Knows the same placeholders as the generation plus {{CURRENT_CODE}} (code of the version); {{TECHNICAL_RULES}} is not used here. The answer should consist of a single Markdown code block.';
 $string['simgen:viewguide'] = 'View the facilitator guide';
 $string['task_generateguide'] = 'Create the guide of an AI simulation';
+// Quality gate (0.5).
+$string['autorepair_static'] = 'The automatic check of the code found the following errors. Fix them completely without changing working parts and check the rest of the code for similar problems:
+{$a}';
+$string['check_badge_failed'] = 'Test: error';
+$string['check_badge_help'] = 'Automatic test: when the version is first opened in the preview, it is checked whether the simulation starts without errors.';
+$string['check_badge_passed'] = 'Test passed';
+$string['check_badge_pending'] = 'Test pending';
+$string['check_duplicatekeys'] = 'useSimState uses the same key more than once ({$a}); the states overwrite each other. Every key may only be used once.';
+$string['check_empty'] = 'The response contains no code.';
+$string['check_error'] = 'Error during the test';
+$string['check_external'] = 'The code loads external resources (images, scripts, fonts or stylesheets from a URL). They are blocked in the sandbox; use inline SVG, canvas or data: URIs.';
+$string['check_issues_title'] = 'Findings of the automatic check';
+$string['check_network'] = 'The code tries to load or send data over the network ({$a}). This is blocked in the sandbox; all data must be contained in the code.';
+$string['check_noapp'] = 'There is no component "App". Define the main component as function App() { … }.';
+$string['check_nocomplete'] = 'The simulation never reports completion (SimBridge.complete is missing). Call SimBridge.complete({ score, maxScore, summary }) at the end.';
+$string['check_repairqueued'] = 'An error occurred when the simulation started. The AI is now fixing it automatically.';
+$string['check_severity_error'] = 'Error';
+$string['check_storage'] = 'The code uses {$a}. This is not available in the sandbox and crashes the simulation; use useSimState or SimBridge.set/get.';
+$string['check_truncated'] = 'The code seems to end in the middle of the program (output limit of the model reached?). Return the complete code and be more concise, e.g. with less text and reusable components.';
+$string['check_unknownpersona'] = 'useConversation uses personas that are not defined: {$a}. Only use the ids of the persona JSON block.';
+$string['origin_autorepair'] = 'Automatic fix';
+$string['settings_autorepair'] = 'Automatic repair rounds';
+$string['settings_autorepair_desc'] = 'If the automatic check finds errors in a version created by the AI (code check right after the generation or test when first opened in the preview), the AI fixes them on its own - at most this many rounds in a row. Every round is an additional AI request. Manually edited code is never changed automatically.';

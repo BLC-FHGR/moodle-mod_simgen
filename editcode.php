@@ -25,6 +25,7 @@
 require(__DIR__ . '/../../config.php');
 
 use mod_simgen\form\editcode_form;
+use mod_simgen\local\code_checker;
 use mod_simgen\local\conversation;
 use mod_simgen\local\generator;
 
@@ -68,7 +69,7 @@ if ($form->is_cancelled()) {
     redirect($viewurl);
 } else if ($data = $form->get_data()) {
     $personas = $data->codetype === 'react' ? conversation::normalise_personas((string)$data->personas) : [];
-    $newid = $DB->insert_record('simgen_versions', (object)[
+    $newversion = (object)[
         'simgenid' => $simgen->id,
         'versionnum' => generator::next_versionnum((int)$simgen->id),
         'codetype' => $data->codetype === 'html' ? 'html' : 'react',
@@ -83,7 +84,11 @@ if ($form->is_cancelled()) {
         'modelinfo' => null,
         'userid' => $USER->id,
         'timecreated' => time(),
-    ]);
+    ];
+    // Manual code is never repaired automatically, but the teacher sees the findings of the static checks.
+    $issues = code_checker::check($simgen, $newversion);
+    $newversion->checkissues = $issues ? json_encode($issues, JSON_UNESCAPED_UNICODE) : null;
+    $newid = $DB->insert_record('simgen_versions', $newversion);
     if ((int)$simgen->status === generator::STATUS_NONE) {
         $DB->set_field('simgen', 'status', generator::STATUS_READY, ['id' => $simgen->id]);
     }

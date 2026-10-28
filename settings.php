@@ -54,6 +54,10 @@ if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configcheckbox('mod_simgen/autoguide',
         get_string('settings_autoguide', 'mod_simgen'), get_string('settings_autoguide_desc', 'mod_simgen'), 1));
 
+    $settings->add(new admin_setting_configselect('mod_simgen/autorepair',
+        get_string('settings_autorepair', 'mod_simgen'), get_string('settings_autorepair_desc', 'mod_simgen'),
+        2, [0 => get_string('no'), 1 => 1, 2 => 2, 3 => 3]));
+
     // Live conversations.
     $settings->add(new admin_setting_heading('mod_simgen/heading_conversation',
         get_string('settings_heading_conversation', 'mod_simgen'),

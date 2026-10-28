@@ -25,7 +25,9 @@
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 
+use mod_simgen\external\report_check;
 use mod_simgen\local\ai_status;
+use mod_simgen\local\code_checker;
 use mod_simgen\local\generator;
 use mod_simgen\local\guide_generator;
 use mod_simgen\local\html_builder;
@@ -155,6 +157,22 @@ if ($canmanage) {
             ], \mod_simgen\local\conversation::from_version($current))),
         ];
         $panel['version']['haspersonas'] = !empty($panel['version']['personas']);
+
+        // Automatic checks: start-up check in the preview and findings of the static checks.
+        $checkstatus = (int)$current->checkstatus;
+        [$checkkey, $checkclass] = [
+            report_check::PASSED => ['passed', 'bg-success'],
+            report_check::FAILED => ['failed', 'bg-danger'],
+        ][$checkstatus] ?? ['pending', 'bg-secondary'];
+        $panel['version']['checkbadge'] = get_string('check_badge_' . $checkkey, 'mod_simgen');
+        $panel['version']['checkclass'] = $checkclass;
+        $panel['version']['checkerror'] = $checkstatus === report_check::FAILED ? (string)$current->checkerror : '';
+        $issues = json_decode((string)$current->checkissues, true);
+        $panel['version']['checkissues'] = is_array($issues) ? array_values(array_map(fn($issue) => [
+            'message' => (string)($issue['message'] ?? ''),
+            'iserror' => ($issue['severity'] ?? '') === code_checker::ERROR,
+        ], $issues)) : [];
+        $panel['version']['hascheckissues'] = !empty($panel['version']['checkissues']);
         $panel['nopublished'] = empty($simgen->publishedversion);
         $panel['publishedinfo'] = !empty($simgen->publishedversion) && isset($versions[$simgen->publishedversion])
             ? get_string('publishedinfo', 'mod_simgen', $versions[$simgen->publishedversion]->versionnum) : '';
@@ -223,7 +241,12 @@ if ($versionid) {
     }
 
     // Live conversations: learners must know that their messages are sent to the AI and visible to teachers.
-    $shownversion = $DB->get_record('simgen_versions', ['id' => $versionid], 'id, codetype, personas, guide');
+    $shownversion = $DB->get_record('simgen_versions', ['id' => $versionid],
+        'id, codetype, sourcecode, personas, guide, checkstatus, compiled, compiledhash');
+
+    // Teachers' preview checks the version and compiles it for students, as long as that has not happened.
+    $check = $canmanage && $shownversion && ((int)$shownversion->checkstatus !== report_check::PASSED
+        || ($shownversion->codetype === 'react' && !html_builder::compiled($shownversion)));
 
     // Teachers without the management panel (e.g. non-editing teachers) reach the guide of the published version here.
     if (!$canmanage && $shownversion && trim((string)$shownversion->guide) !== ''
@@ -256,6 +279,7 @@ if ($versionid) {
         'canmanage' => $canmanage,
         'minheight' => (int)$simgen->minheight,
         'versionid' => (int)$versionid,
+        'check' => $check,
     ]]);
 } else if (!$canmanage) {
     echo $OUTPUT->notification(get_string('notavailable', 'mod_simgen'), \core\output\notification::NOTIFY_INFO);

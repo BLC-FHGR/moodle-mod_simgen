@@ -46,6 +46,7 @@ const call = (methodname, args) => Ajax.call([{methodname, args}])[0];
  * @param {Number} opts.minheight minimal iframe height in px
  * @param {Number} opts.versionid shown version (the server only accepts drafts for teachers)
  * @param {String} opts.firstname first name of the user (offered to the simulation)
+ * @param {Boolean} opts.check report the start-up check of this version (teachers, version not checked/compiled yet)
  */
 export const init = async(opts) => {
     const wrapper = document.getElementById(opts.wrapperid);
@@ -66,8 +67,12 @@ export const init = async(opts) => {
         {key: 'player_resetconfirm', component: 'mod_simgen'},
         {key: 'player_reset', component: 'mod_simgen'},
         {key: 'error_prefill', component: 'mod_simgen'},
+        {key: 'check_badge_passed', component: 'mod_simgen'},
+        {key: 'check_badge_failed', component: 'mod_simgen'},
+        {key: 'check_repairqueued', component: 'mod_simgen'},
     ]);
-    const [sSaving, sSaved, sSaveError, sCompleted, sResetTitle, sResetConfirm, sReset, sPrefill] = str;
+    const [sSaving, sSaved, sSaveError, sCompleted, sResetTitle, sResetConfirm, sReset, sPrefill,
+        sCheckPassed, sCheckFailed, sRepairQueued] = str;
 
     const setStatus = (text) => {
         if (statusEl) {
@@ -258,6 +263,44 @@ export const init = async(opts) => {
         errorRegion.hidden = false;
     };
 
+    // Start-up check of a new version: store the result (and the compiled code); a failed AI version is repaired.
+    let checkReported = false;
+    const handleCheck = (d) => {
+        if (!opts.check || checkReported) {
+            return;
+        }
+        checkReported = true;
+        const args = {cmid: opts.cmid, versionid: opts.versionid, ok: !!d.ok, error: String(d.error || '').slice(0, 6000)};
+        if (d.ok && typeof d.compiled === 'string') {
+            args.compiled = d.compiled;
+            args.appname = String(d.appName || 'App');
+            args.selfrender = !!d.selfRender;
+        }
+        call('mod_simgen_report_check', args)
+            .then((result) => {
+                const badge = document.querySelector('[data-region="simgen-checkstatus"]');
+                if (badge) {
+                    badge.textContent = result.status === 1 ? sCheckPassed : sCheckFailed;
+                    badge.classList.toggle('bg-success', result.status === 1);
+                    badge.classList.toggle('bg-danger', result.status !== 1);
+                    badge.classList.remove('bg-secondary');
+                }
+                if (result.repairqueued) {
+                    addToast(sRepairQueued, {type: 'info'}).catch(() => null);
+                    // Show the generation status (and afterwards the repaired version).
+                    setTimeout(() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('version');
+                        window.location.href = url.toString();
+                    }, 2500);
+                }
+                return null;
+            })
+            .catch(() => {
+                checkReported = false;
+            });
+    };
+
     window.addEventListener('message', (ev) => {
         if (ev.source !== frame.contentWindow) {
             return;
@@ -281,6 +324,9 @@ export const init = async(opts) => {
                 break;
             case 'error':
                 handleError(d);
+                break;
+            case 'check':
+                handleCheck(d);
                 break;
             case 'reset':
                 resetProgress();

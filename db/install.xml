@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/simgen/db" VERSION="20261021" COMMENT="XMLDB file for Moodle mod_simgen"
+<XMLDB PATH="mod/simgen/db" VERSION="20261028" COMMENT="XMLDB file for Moodle mod_simgen"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -33,6 +33,7 @@
         <FIELD NAME="genstarted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp the running generation started"/>
         <FIELD NAME="pendingfeedback" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Change request for the next generation"/>
         <FIELD NAME="pendingbaseversion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Version to revise, 0 = generate from scratch"/>
+        <FIELD NAME="pendingautorepair" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The pending revision is an automatic repair"/>
         <FIELD NAME="publishedversion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Version visible for students"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -54,7 +55,7 @@
         <FIELD NAME="prompttext" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Prompt sent to the AI"/>
         <FIELD NAME="rawresponse" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Response of the AI"/>
         <FIELD NAME="revisionnote" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Change request or note for this version"/>
-        <FIELD NAME="origin" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="ai" SEQUENCE="false" COMMENT="ai, revision or manual"/>
+        <FIELD NAME="origin" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="ai" SEQUENCE="false" COMMENT="ai, revision, autorepair or manual"/>
         <FIELD NAME="modelinfo" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -66,6 +67,11 @@
         <FIELD NAME="guiderequested" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of the latest guide request"/>
         <FIELD NAME="guidestarted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp the running guide generation started"/>
         <FIELD NAME="guidemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="checkissues" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: findings of the static checks"/>
+        <FIELD NAME="checkstatus" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Start-up check: 0 pending, 1 passed, 2 failed"/>
+        <FIELD NAME="checkerror" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="First error of a failed start-up check"/>
+        <FIELD NAME="compiled" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON: precompiled code for students"/>
+        <FIELD NAME="compiledhash" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="Fingerprint of source and compiler of the precompiled code"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

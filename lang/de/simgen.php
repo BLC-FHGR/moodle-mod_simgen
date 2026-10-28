@@ -356,3 +356,26 @@ $string['settings_prompt_guide'] = 'Prompt-Vorlage: Leitfaden';
 $string['settings_prompt_guide_desc'] = 'Wird für den Leitfaden für Lehrpersonen verwendet. Kennt dieselben Platzhalter wie die Generierung sowie {{CURRENT_CODE}} (Code der Version); {{TECHNICAL_RULES}} wird hier nicht verwendet. Die Antwort sollte aus einem einzigen Markdown-Codeblock bestehen.';
 $string['simgen:viewguide'] = 'Leitfaden für Lehrpersonen ansehen';
 $string['task_generateguide'] = 'Leitfaden einer KI-Simulation erstellen';
+// Quality gate (0.5).
+$string['autorepair_static'] = 'Die automatische Prüfung des Codes hat folgende Fehler gefunden. Behebe sie vollständig, ohne funktionierende Teile zu verändern, und prüfe den restlichen Code auf ähnliche Probleme:
+{$a}';
+$string['check_badge_failed'] = 'Test: Fehler';
+$string['check_badge_help'] = 'Automatischer Test: Beim ersten Öffnen in der Vorschau wird geprüft, ob die Simulation ohne Fehler startet.';
+$string['check_badge_passed'] = 'Test bestanden';
+$string['check_badge_pending'] = 'Test ausstehend';
+$string['check_duplicatekeys'] = 'useSimState verwendet denselben Schlüssel mehrfach ({$a}); die Zustände überschreiben sich gegenseitig. Jeder Schlüssel darf nur einmal vorkommen.';
+$string['check_empty'] = 'Die Antwort enthält keinen Code.';
+$string['check_error'] = 'Fehler beim Test';
+$string['check_external'] = 'Der Code lädt externe Ressourcen (Bilder, Skripte, Schriften oder Stylesheets über eine URL). Diese werden in der Sandbox blockiert; verwende Inline-SVG, Canvas oder data:-URIs.';
+$string['check_issues_title'] = 'Hinweise der automatischen Prüfung';
+$string['check_network'] = 'Der Code versucht, Daten über das Netzwerk zu laden oder zu senden ({$a}). Das ist in der Sandbox blockiert; alle Daten müssen im Code enthalten sein.';
+$string['check_noapp'] = 'Es gibt keine Komponente «App». Definiere die Hauptkomponente als function App() { … }.';
+$string['check_nocomplete'] = 'Die Simulation meldet nie einen Abschluss (SimBridge.complete fehlt). Rufe am Ende SimBridge.complete({ score, maxScore, summary }) auf.';
+$string['check_repairqueued'] = 'Beim Start der Simulation ist ein Fehler aufgetreten. Die KI korrigiert ihn jetzt automatisch.';
+$string['check_severity_error'] = 'Fehler';
+$string['check_storage'] = 'Der Code verwendet {$a}. Das ist in der Sandbox nicht verfügbar und lässt die Simulation abstürzen; verwende useSimState bzw. SimBridge.set/get.';
+$string['check_truncated'] = 'Der Code scheint mitten im Programm abzubrechen (Ausgabelimit des Modells erreicht?). Gib den vollständigen Code zurück und fasse dich kürzer, z. B. mit weniger Text und wiederverwendbaren Komponenten.';
+$string['check_unknownpersona'] = 'useConversation verwendet Gesprächsfiguren, die nicht definiert sind: {$a}. Verwende nur die IDs aus dem JSON-Block der Figuren.';
+$string['origin_autorepair'] = 'Automatische Korrektur';
+$string['settings_autorepair'] = 'Automatische Korrekturrunden';
+$string['settings_autorepair_desc'] = 'Findet die automatische Prüfung Fehler in einer von der KI erstellten Version (Code-Prüfung direkt nach der Generierung oder Test beim ersten Öffnen in der Vorschau), korrigiert die KI sie selbständig – höchstens so viele Runden hintereinander. Jede Runde ist eine zusätzliche KI-Anfrage. Manuell bearbeiteter Code wird nie automatisch verändert.';

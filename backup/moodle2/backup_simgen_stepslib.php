@@ -46,7 +46,7 @@ class backup_simgen_activity_structure_step extends backup_activity_structure_st
         $version = new backup_nested_element('version', ['id'], [
             'versionnum', 'codetype', 'sourcecode', 'css', 'personas', 'prompttext', 'rawresponse', 'revisionnote',
             'origin', 'modelinfo', 'userid', 'timecreated', 'guide', 'guidestatus', 'guideorigin', 'guidemodelinfo',
-            'guidemodified',
+            'guidemodified', 'checkissues', 'checkstatus', 'checkerror', 'compiled', 'compiledhash',
         ]);
 
         $states = new backup_nested_element('states');

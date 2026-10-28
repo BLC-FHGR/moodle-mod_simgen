@@ -34,6 +34,12 @@ class html_builder {
     /** @var string default Babel standalone build */
     const DEFAULT_BABEL = 'https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.10/babel.min.js';
 
+    /** @var int format of the precompiled code; increase when bridge.js compiles differently (e.g. texPlugin) */
+    const COMPILE_FORMAT = 1;
+
+    /** @var int maximum size of precompiled code in bytes */
+    const MAX_COMPILED = 2097152;
+
     /** @var string sandbox flags used for the iframe attribute and the CSP header */
     const SANDBOX = 'allow-scripts allow-forms allow-modals allow-downloads';
 
@@ -65,15 +71,22 @@ class html_builder {
     public static function build(stdClass $simgen, stdClass $version, bool $debug = false): string {
         global $CFG;
 
+        // Teachers (debug) always compile the source, which also checks it; everybody else gets the precompiled code.
+        $compiled = !$debug ? self::compiled($version) : null;
         $config = [
             'parentOrigin' => self::origin($CFG->wwwroot),
             'codetype' => $version->codetype,
-            'source' => $version->codetype === 'react' ? (string)$version->sourcecode : '',
+            'source' => $version->codetype === 'react' && !$compiled ? (string)$version->sourcecode : '',
             'css' => (string)($version->css ?? ''),
             // Public persona data only - the persona prompts stay on the server.
             'personas' => conversation::public_personas(conversation::from_version($version)),
             'strings' => self::strings(),
+            'check' => $debug,
         ];
+        if ($compiled) {
+            $config += ['compiled' => $compiled['code'], 'appName' => $compiled['app'],
+                'selfRender' => $compiled['selfrender']];
+        }
         $runtime = '<script>window.__SIMGEN__ = ' . self::json($config) . ';</script>' . "\n"
             . '<script>' . file_get_contents($CFG->dirroot . '/mod/simgen/runtime/bridge.js') . '</script>';
 
@@ -82,7 +95,12 @@ class html_builder {
         }
 
         $libs = '';
-        foreach (self::library_urls($debug) as $url) {
+        $urls = self::library_urls($debug);
+        if ($compiled) {
+            // Without Babel (the largest library).
+            array_pop($urls);
+        }
+        foreach ($urls as $url) {
             $crossorigin = self::origin($url) !== self::origin($CFG->wwwroot) ? ' crossorigin="anonymous"' : '';
             $libs .= '<script src="' . s($url) . '"' . $crossorigin . '></script>' . "\n";
         }
@@ -171,6 +189,46 @@ HTML;
             $urls[1] = str_replace('.production.min.js', '.development.js', $urls[1]);
         }
         return $urls;
+    }
+
+    /**
+     * Fingerprint of the source and the compiler: precompiled code is only used while both are unchanged.
+     *
+     * @param stdClass $version
+     * @return string
+     */
+    public static function compile_hash(stdClass $version): string {
+        $babel = get_config('mod_simgen', 'libbabel') ?: self::DEFAULT_BABEL;
+        return sha1(self::COMPILE_FORMAT . "\n" . $babel . "\n" . (string)$version->sourcecode);
+    }
+
+    /**
+     * Precompiled code of a React version, if it is still valid.
+     *
+     * @param stdClass $version
+     * @return array|null ['code' => string, 'app' => string, 'selfrender' => bool]
+     */
+    public static function compiled(stdClass $version): ?array {
+        if ($version->codetype !== 'react' || empty($version->compiled)
+                || ($version->compiledhash ?? '') !== self::compile_hash($version)) {
+            return null;
+        }
+        $data = json_decode((string)$version->compiled, true);
+        if (!is_array($data) || !is_string($data['code'] ?? null) || $data['code'] === ''
+                || !self::valid_identifier($data['app'] ?? '')) {
+            return null;
+        }
+        return ['code' => $data['code'], 'app' => $data['app'], 'selfrender' => !empty($data['selfrender'])];
+    }
+
+    /**
+     * Is this a plain JavaScript identifier (the name of the app component is inserted into a script)?
+     *
+     * @param mixed $name
+     * @return bool
+     */
+    public static function valid_identifier($name): bool {
+        return is_string($name) && strlen($name) <= 100 && preg_match('/^[A-Za-z_$][\w$]*$/', $name);
     }
 
     /**

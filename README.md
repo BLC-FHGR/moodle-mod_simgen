@@ -33,6 +33,25 @@ Studierende ◄──── sandboxed iframe (sim.php) ◄──── veröffen
 - **Live-Gespräch mit KI-Figuren** (Simulationstyp, ab 0.2): siehe unten.
 - **Formeln und mathematische Grafiken** (ab 0.3): KaTeX und JSXGraph sind im Plugin enthalten, siehe unten.
 - **Leitfaden für Lehrpersonen** (ab 0.4): Brief, Durchführung und Debrief zur fertigen Simulation, siehe unten.
+- **Qualitätsschranke** (ab 0.5): automatische Code-Prüfung, Test in der Vorschau, automatische Korrektur und vorkompilierter Code für Studierende, siehe unten.
+
+## Qualitätsschranke (ab Version 0.5)
+
+```
+Generierung ──► Code-Prüfung (PHP) ──Fehler──► automatische Korrektur (KI) ──┐
+                     │ ok / nur Hinweise                                     │
+                     ▼                                                       │
+              Vorschau der Lehrperson ◄──────────────────────────────────────┘
+              Test: startet die Simulation 3 s ohne Fehler?
+                     │ ja: kompilierten Code speichern     │ nein (erster Test einer KI-Version)
+                     ▼                                     ▼
+              Studierende: ohne Babel              automatische Korrektur (KI)
+```
+
+- **Code-Prüfung** (`classes/local/code_checker.php`) direkt nach jeder Generierung und beim manuellen Bearbeiten: fehlende Komponente `App`, abgeschnittener Code (Ausgabelimit), `localStorage`/`sessionStorage`/`indexedDB` und Netzwerkzugriffe (in der Sandbox nicht verfügbar), externe Ressourcen (von der CSP blockiert), doppelte `useSimState`-Schlüssel, unbekannte Gesprächsfiguren, fehlendes `SimBridge.complete` (Fehler, wenn die Abschlussbedingung «Simulation abgeschlossen» aktiv ist, sonst Hinweis). Die Befunde stehen über der Vorschau.
+- **Test in der Vorschau:** Beim ersten Öffnen einer Version meldet die Runtime (`bridge.js`), ob die Simulation in den ersten 3 Sekunden ohne Fehler startet (`mod_simgen_report_check`). Das Badge neben der Version zeigt «Test bestanden», «Test: Fehler» oder «Test ausstehend». Ein Netzwerkfehler beim Laden der Bibliotheken zählt nicht als Fehler im Code.
+- **Automatische Korrektur:** Fehler der Code-Prüfung oder ein fehlgeschlagener erster Test lösen eine KI-Überarbeitung mit der Fehlerbeschreibung aus (Herkunft «Automatische Korrektur»). Nur für die neueste Version, nur für KI-Code (nie für manuell bearbeiteten) und höchstens `autorepair` Runden hintereinander (Standard 2, 0 = aus). Jede Runde ist eine zusätzliche KI-Anfrage. Benachrichtigt wird erst, wenn die korrigierte Version bereit ist.
+- **Vorkompilierter Code:** Besteht eine React-Version den Test, speichert das Plugin den im Browser der Lehrperson kompilierten Code. Studierende (und der HTML-Download) bekommen ihn ohne Babel. Der Fingerabdruck (`compiledhash`) umfasst Quelltext, Babel-URL und `html_builder::COMPILE_FORMAT`. Ändert sich eines davon, wird wieder aus dem Quelltext kompiliert, bis eine Lehrperson die Version erneut in der Vorschau öffnet. `COMPILE_FORMAT` erhöhen, wenn `bridge.js` anders kompiliert (z. B. Änderungen am LaTeX-Plugin).
 
 ## Leitfaden für Lehrpersonen (ab Version 0.4)
 
