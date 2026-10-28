@@ -66,6 +66,7 @@ $string['error_rawresponse'] = 'Beginn der KI-Antwort:';
 $string['error_stale'] = 'Die Generierung wurde nicht abgeschlossen (Zeitüberschreitung oder Serverneustart). Bitte versuchen Sie es erneut.';
 $string['error_statetoolarge'] = 'Der Fortschritt ist zu gross, um gespeichert zu werden (maximal {$a} KB).';
 $string['error_unexpected'] = 'Unerwarteter Fehler: {$a}';
+$string['error_versionchanged'] = 'Diese Simulation wurde inzwischen aktualisiert. Bitte laden Sie die Seite neu. Bis dahin wird Ihr Fortschritt nicht gespeichert und Gespräche sind nicht verfügbar.';
 $string['errorreport_fix'] = 'Fehler von der KI beheben lassen';
 $string['errorreport_help'] = 'Diesen Hinweis sehen nur Lehrpersonen. Studierende sehen in der Simulation eine kurze Fehlermeldung.';
 $string['errorreport_title'] = 'Die Simulation hat einen Fehler gemeldet';

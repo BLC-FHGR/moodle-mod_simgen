@@ -218,13 +218,7 @@ class generator {
             $parsed = response_parser::parse($response);
 
             // Live conversations: validate and store the AI personas.
-            $personas = [];
-            if ($parsed['codetype'] === 'react' && prompt_builder::is_conversation($simgen, $baseversion ?: null)) {
-                $personas = conversation::normalise_personas($parsed['personas']);
-                if (!$personas) {
-                    throw new \moodle_exception('error_nopersonas', 'mod_simgen');
-                }
-            }
+            $personas = self::personas_from_response($parsed, $simgen, $baseversion ?: null);
 
             $version = (object)[
                 'simgenid' => $simgen->id,
@@ -294,6 +288,33 @@ class generator {
             self::notify($simgen, $cm, false, $message);
             return false;
         }
+    }
+
+    /**
+     * Personas of a new version from the parsed AI response.
+     *
+     * A revision without a persona block keeps the personas of its base version (models often only return the
+     * changed code, e.g. in an automatic repair).
+     *
+     * @param array $parsed result of response_parser::parse()
+     * @param stdClass $simgen instance record
+     * @param stdClass|null $baseversion revised version, null for a fresh generation
+     * @return array personas keyed by id (empty if the simulation has no live conversations)
+     * @throws \moodle_exception if a conversation simulation ends up without personas
+     */
+    public static function personas_from_response(array $parsed, stdClass $simgen, ?stdClass $baseversion): array {
+        if ($parsed['codetype'] !== 'react' || !prompt_builder::is_conversation($simgen, $baseversion)) {
+            return [];
+        }
+        if (trim($parsed['personas']) === '' && $baseversion) {
+            $personas = conversation::from_version($baseversion);
+        } else {
+            $personas = conversation::normalise_personas($parsed['personas']);
+        }
+        if (!$personas) {
+            throw new \moodle_exception('error_nopersonas', 'mod_simgen');
+        }
+        return $personas;
     }
 
     /**

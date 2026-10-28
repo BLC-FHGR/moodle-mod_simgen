@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.5.3 (2026-10-28)
+
+- Überarbeitungen von Gesprächssimulationen brachen mit «keine gültigen Gesprächsfiguren» ab, wenn die KI nur den geänderten Code ohne JSON-Block mit `personas` lieferte (häufig bei der automatischen Korrektur). Jetzt werden die Figuren der Basisversion übernommen.
+- Versionswechsel bei offener Seite: Wer die Simulation geöffnet hat, während eine neue Version veröffentlicht wird, bekommt den Hinweis, die Seite neu zu laden. Bis dahin gehen Gespräche nicht mehr an die Figuren der neuen Version, und der Fortschritt des alten Codes wird nicht unter der neuen Version gespeichert; Abschluss, Punkte und Bearbeitungszeit zählen weiterhin. `mod_simgen_save_state` hat dafür den neuen Parameter `versionid` und die Rückgabe `versionchanged`.
+- Erste PHPUnit-Tests und ein Datengenerator für Tests.
+
 ## 0.5.2 (2026-10-28)
 
 - JSXGraph-Texte: `board.create('text', [x, y], { name: … })` (Beschriftung als Attribut statt als drittes Element) brach mit «Can't create text with parent types 'number' and 'number'» ab. `<MathBoard>` ergänzt die Beschriftung jetzt automatisch (aus `name`, `text` oder `label`); wirkt sofort auch für bestehende Simulationen.

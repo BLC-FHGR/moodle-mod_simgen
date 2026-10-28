@@ -52,6 +52,7 @@ class save_state extends external_api {
             'summary' => new external_value(PARAM_TEXT, 'Result summary', VALUE_DEFAULT, ''),
             'activeseconds' => new external_value(PARAM_INT, 'Active working time since the last call (seconds)',
                 VALUE_DEFAULT, 0),
+            'versionid' => new external_value(PARAM_INT, 'Version shown on the page (0 = not checked)', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -65,10 +66,11 @@ class save_state extends external_api {
      * @param float|null $maxscore
      * @param string $summary
      * @param int $activeseconds
+     * @param int $versionid
      * @return array
      */
     public static function execute(int $cmid, string $state = '', bool $completed = false, ?float $score = null,
-            ?float $maxscore = null, string $summary = '', int $activeseconds = 0): array {
+            ?float $maxscore = null, string $summary = '', int $activeseconds = 0, int $versionid = 0): array {
         global $DB, $USER;
 
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -79,6 +81,7 @@ class save_state extends external_api {
             'maxscore' => $maxscore,
             'summary' => $summary,
             'activeseconds' => $activeseconds,
+            'versionid' => $versionid,
         ]);
         [$course, $cm] = get_course_and_cm_from_cmid($params['cmid'], 'simgen');
         $context = \context_module::instance($cm->id);
@@ -89,8 +92,12 @@ class save_state extends external_api {
         $simgen = $DB->get_record('simgen', ['id' => $cm->instance], '*', MUST_EXIST);
         $now = time();
 
+        // A newer version was published while the page was open: the state of the old code would not fit the new
+        // code. Completion and working time still count, the state is not stored.
+        $versionchanged = $params['versionid'] && $params['versionid'] !== (int)$simgen->publishedversion;
+
         $statedata = null;
-        if ($params['state'] !== '' && !empty($simgen->savestate)) {
+        if ($params['state'] !== '' && !empty($simgen->savestate) && !$versionchanged) {
             $maxkb = (int)get_config('mod_simgen', 'maxstatesize') ?: self::DEFAULT_MAX_KB;
             if (strlen($params['state']) > $maxkb * 1024) {
                 throw new \moodle_exception('error_statetoolarge', 'mod_simgen', '', $maxkb);
@@ -125,9 +132,10 @@ class save_state extends external_api {
             }
         }
 
-        $update = (object)['id' => $record->id, 'timemodified' => $now, 'versionid' => (int)$simgen->publishedversion];
+        $update = (object)['id' => $record->id, 'timemodified' => $now];
         if ($statedata !== null) {
             $update->statedata = $statedata;
+            $update->versionid = (int)$simgen->publishedversion;
         }
         if ($params['completed']) {
             $update->completed = 1;
@@ -162,7 +170,7 @@ class save_state extends external_api {
             ])->trigger();
         }
 
-        return ['status' => true, 'timemodified' => $now];
+        return ['status' => true, 'timemodified' => $now, 'versionchanged' => $versionchanged];
     }
 
     /**
@@ -187,6 +195,7 @@ class save_state extends external_api {
         return new external_single_structure([
             'status' => new external_value(PARAM_BOOL, 'Success'),
             'timemodified' => new external_value(PARAM_INT, 'Time of the save'),
+            'versionchanged' => new external_value(PARAM_BOOL, 'A newer version was published, the state was not stored'),
         ]);
     }
 }
