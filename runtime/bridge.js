@@ -226,8 +226,16 @@
     }
 
     window.addEventListener('error', function(ev) {
-        if (ev.target && ev.target !== window && ev.target.tagName === 'SCRIPT') {
-            showError(STR.libsfailed, 'Could not load ' + (ev.target.src || 'script'), true);
+        var target = ev.target;
+        if (target && target !== window && target.tagName) {
+            // A resource could not be loaded.
+            var isScript = target.tagName === 'SCRIPT';
+            if (target.hasAttribute && target.hasAttribute('data-simgen-lib')) {
+                // A library of the runtime (network or server problem) says nothing about the code: no check result.
+                checkDone = true;
+            }
+            var url = target.currentSrc || target.src || target.href || target.tagName.toLowerCase();
+            showError(isScript ? STR.libsfailed : STR.errortitle, 'Could not load ' + url, isScript);
             return;
         }
         showError(STR.errortitle, ev.error || ev.message, false);

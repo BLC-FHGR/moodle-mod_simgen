@@ -94,6 +94,7 @@ class html_builder {
             return self::inject_into_document((string)$version->sourcecode, $runtime);
         }
 
+        // Marked with data-simgen-lib: bridge.js does not count a failure to load them as an error in the code.
         $libs = '';
         $urls = self::library_urls($debug);
         if ($compiled) {
@@ -102,14 +103,14 @@ class html_builder {
         }
         foreach ($urls as $url) {
             $crossorigin = self::origin($url) !== self::origin($CFG->wwwroot) ? ' crossorigin="anonymous"' : '';
-            $libs .= '<script src="' . s($url) . '"' . $crossorigin . '></script>' . "\n";
+            $libs .= '<script src="' . s($url) . '"' . $crossorigin . ' data-simgen-lib></script>' . "\n";
         }
         foreach (self::math_libraries((string)$version->sourcecode) as $name) {
             foreach (self::MATH_LIBRARIES[$name]['styles'] as $file) {
-                $libs .= '<link rel="stylesheet" href="' . s(self::bundled_url($file)) . '">' . "\n";
+                $libs .= '<link rel="stylesheet" href="' . s(self::bundled_url($file)) . '" data-simgen-lib>' . "\n";
             }
             foreach (self::MATH_LIBRARIES[$name]['scripts'] as $file) {
-                $libs .= '<script src="' . s(self::bundled_url($file)) . '"></script>' . "\n";
+                $libs .= '<script src="' . s(self::bundled_url($file)) . '" data-simgen-lib></script>' . "\n";
             }
         }
 
