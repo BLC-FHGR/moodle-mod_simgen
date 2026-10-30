@@ -241,6 +241,11 @@ export const init = async(opts) => {
     };
 
     const reloadFrame = () => {
+        if (versionNoticeShown) {
+            // The frame would load the new version while this page still reports the old one: reload everything.
+            window.location.reload();
+            return;
+        }
         statePromise = null;
         const url = new URL(frame.src, window.location.href);
         url.searchParams.set('_', Date.now());
@@ -291,8 +296,12 @@ export const init = async(opts) => {
             .then((result) => send({type: 'response', requestId: d.requestId, ok: true, data: conversationResult(result)}))
             .catch((e) => {
                 const error = (e && (e.message || e.error)) || String(e);
-                // Always visible, even if the generated user interface does not show chat.error.
-                showNotice(error);
+                if (e && e.errorcode === 'error_versionchanged') {
+                    versionChanged();
+                } else {
+                    // Always visible, even if the generated user interface does not show chat.error.
+                    showNotice(error);
+                }
                 send({type: 'response', requestId: d.requestId, ok: false, error});
             });
     };
