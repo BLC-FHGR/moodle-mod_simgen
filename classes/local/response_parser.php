@@ -179,12 +179,13 @@ class response_parser {
             }
         }
 
-        // 2. Raw Markdown fences.
+        // 2. Raw Markdown fences. The block may be empty and the closing fence may be longer than the opening one.
         $text = str_replace(["\r\n", "\r"], "\n", $content);
-        if (preg_match_all('/^[ \t]*(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]*)[^\n]*\n(.*?)\n[ \t]*\1[ \t]*$/ms', $text, $matches,
-                PREG_SET_ORDER)) {
+        if (preg_match_all('/^[ \t]*(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]*)[^\n]*\n(.*?)^[ \t]*\1[`~]*[ \t]*$/ms', $text,
+                $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $blocks[] = ['lang' => strtolower($match[2]), 'code' => $match[3]];
+                $code = substr($match[3], -1) === "\n" ? substr($match[3], 0, -1) : $match[3];
+                $blocks[] = ['lang' => strtolower($match[2]), 'code' => $code];
             }
         }
 
