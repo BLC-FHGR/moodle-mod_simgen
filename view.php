@@ -290,6 +290,8 @@ if ($versionid) {
         'canmanage' => $canmanage,
         'minheight' => (int)$simgen->minheight,
         'versionid' => (int)$versionid,
+        // Offered to the simulation as SimBridge.user.firstname (stays in the sandbox, which cannot send data out).
+        'firstname' => isguestuser() ? '' : (string)$USER->firstname,
         'check' => $check,
     ]]);
 } else if (!$canmanage) {
