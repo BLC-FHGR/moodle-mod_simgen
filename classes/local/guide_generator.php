@@ -142,6 +142,10 @@ class guide_generator {
             $response = $result->get_content();
             $guide = response_parser::parse_guide($response);
 
+            if (!self::owns_request($version)) {
+                // Superseded by a newer request or a manual guide (e.g. after this run was considered stale).
+                return false;
+            }
             $DB->update_record('simgen_versions', (object)[
                 'id' => $version->id,
                 'guide' => $guide,
@@ -162,6 +166,9 @@ class guide_generator {
             if ($response !== '') {
                 $message .= "\n\n" . get_string('error_rawresponse', 'mod_simgen') . "\n"
                     . \core_text::substr(trim(strip_tags($response)), 0, 2000);
+            }
+            if (!self::owns_request($version)) {
+                return false;
             }
             // An existing guide stays available; only the status shows the failed renewal.
             $DB->update_record('simgen_versions', (object)[
@@ -192,6 +199,22 @@ class guide_generator {
             'guidemessage' => '',
             'guidemodified' => time(),
         ]);
+    }
+
+    /**
+     * May a run still store its result? Not if a newer request was queued or the teacher saved a guide after the
+     * run claimed its request.
+     *
+     * A run that was marked as stale (status error) but finishes after all may still store its result.
+     *
+     * @param stdClass $version version record as claimed by the run
+     * @return bool
+     */
+    public static function owns_request(stdClass $version): bool {
+        global $DB;
+        $current = $DB->get_record('simgen_versions', ['id' => $version->id], 'id, guidestatus, guiderequested');
+        return $current && (int)$current->guiderequested === (int)$version->guiderequested
+            && in_array((int)$current->guidestatus, [generator::STATUS_GENERATING, generator::STATUS_ERROR], true);
     }
 
     /**

@@ -85,6 +85,34 @@ final class generator_test extends \advanced_testcase {
     }
 
     /**
+     * A run may only store its result while no newer request was queued.
+     */
+    public function test_owns_request(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $module = $this->getDataGenerator()->create_module('simgen', ['course' => $course->id]);
+        $set = fn(int $status, int $requested) => $DB->update_record('simgen',
+            (object)['id' => $module->id, 'status' => $status, 'genrequested' => $requested]);
+
+        // The run claimed the request of time 100.
+        $set(generator::STATUS_GENERATING, 100);
+        $claimed = $DB->get_record('simgen', ['id' => $module->id], '*', MUST_EXIST);
+        $this->assertTrue(generator::owns_request($claimed));
+
+        // Marked as stale, no newer request: a late result is still welcome.
+        generator::check_stale((object)['id' => $module->id, 'status' => generator::STATUS_GENERATING,
+            'genstarted' => 1]);
+        $this->assertTrue(generator::owns_request($claimed));
+
+        // The teacher retried: the late result must not touch the new request.
+        $set(generator::STATUS_PENDING, 200);
+        $this->assertFalse(generator::owns_request($claimed));
+        $set(generator::STATUS_GENERATING, 200);
+        $this->assertFalse(generator::owns_request($claimed));
+    }
+
+    /**
      * Simulations without live conversations have no personas.
      */
     public function test_personas_not_a_conversation(): void {

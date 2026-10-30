@@ -249,6 +249,12 @@ class generator {
                 'other' => ['versionnum' => $version->versionnum],
             ])->trigger();
 
+            if (!self::owns_request($simgen)) {
+                // A newer request was queued meanwhile (e.g. after this run was considered stale): keep the version,
+                // the status belongs to the newer request.
+                return true;
+            }
+
             $errors = code_checker::errors($issues);
             if ($errors && self::autorepair_allowed($version)) {
                 // Let the AI fix the errors right away; the teacher is notified once the repaired version is ready.
@@ -278,6 +284,9 @@ class generator {
             if ($response !== '') {
                 $message .= "\n\n" . get_string('error_rawresponse', 'mod_simgen') . "\n"
                     . \core_text::substr(trim(strip_tags($response)), 0, 2000);
+            }
+            if (!self::owns_request($simgen)) {
+                return false;
             }
             $DB->update_record('simgen', (object)[
                 'id' => $simgen->id,
@@ -326,6 +335,21 @@ class generator {
     public static function next_versionnum(int $simgenid): int {
         global $DB;
         return (int)$DB->get_field_sql('SELECT MAX(versionnum) FROM {simgen_versions} WHERE simgenid = ?', [$simgenid]) + 1;
+    }
+
+    /**
+     * May a run still store its result? Not if a newer request was queued after the run claimed its request.
+     *
+     * A run that was marked as stale (status error) but finishes after all may still store its result.
+     *
+     * @param stdClass $simgen instance record as claimed by the run
+     * @return bool
+     */
+    public static function owns_request(stdClass $simgen): bool {
+        global $DB;
+        $current = $DB->get_record('simgen', ['id' => $simgen->id], 'id, status, genrequested');
+        return $current && (int)$current->genrequested === (int)$simgen->genrequested
+            && in_array((int)$current->status, [self::STATUS_GENERATING, self::STATUS_ERROR], true);
     }
 
     /**
