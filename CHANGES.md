@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.5.4 (2026-10-30)
+
+- Automatische Korrektur aus dem Starttest ersetzt keinen wartenden Auftrag mehr. Bisher ging eine angeforderte Überarbeitung ohne Hinweis verloren, wenn die Lehrperson vor dem Lauf des Cron eine fehlerhafte Version in der Vorschau öffnete.
+- Endet eine als «hängend» markierte Generierung doch noch, überschreibt sie keinen inzwischen neu gestarteten Auftrag mehr. Beim Leitfaden bleibt eine zwischenzeitlich manuell gespeicherte Fassung erhalten.
+- Parser: Ein leerer Codeblock (z. B. leeres CSS) verschluckte bei rohem Markdown den folgenden JSX-Block. Längere Schlusszäune (` ```` `) landen nicht mehr im Code.
+- Starttest: Können KaTeX oder JSXGraph nicht geladen werden, gilt das nicht mehr als Fehler im Code und löst keine automatische Korrektur aus. Andere Ladefehler zeigen die URL statt «Unknown error».
+
 ## 0.5.3 (2026-10-28)
 
 - Überarbeitungen von Gesprächssimulationen brachen mit «keine gültigen Gesprächsfiguren» ab, wenn die KI nur den geänderten Code ohne JSON-Block mit `personas` lieferte (häufig bei der automatischen Korrektur). Jetzt werden die Figuren der Basisversion übernommen.
