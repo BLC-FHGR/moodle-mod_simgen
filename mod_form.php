@@ -59,6 +59,7 @@ class mod_simgen_mod_form extends moodleform_mod {
         $mform->addElement('text', 'subject', get_string('subject', 'mod_simgen'), ['size' => 64]);
         $mform->setType('subject', PARAM_TEXT);
         $mform->addRule('subject', null, 'required', null, 'client');
+        $mform->addRule('subject', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('subject', 'subject', 'mod_simgen');
 
         $mform->addElement('textarea', 'targetgroup', get_string('targetgroup', 'mod_simgen'), ['rows' => 2, 'cols' => 60]);
