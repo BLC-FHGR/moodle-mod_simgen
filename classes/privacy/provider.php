@@ -49,12 +49,17 @@ class provider implements
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('simgen_states', [
             'userid' => 'privacy:metadata:simgen_states:userid',
+            'versionid' => 'privacy:metadata:simgen_states:versionid',
             'statedata' => 'privacy:metadata:simgen_states:statedata',
             'completed' => 'privacy:metadata:simgen_states:completed',
             'rawscore' => 'privacy:metadata:simgen_states:rawscore',
+            'maxscore' => 'privacy:metadata:simgen_states:maxscore',
             'summary' => 'privacy:metadata:simgen_states:summary',
+            'timecreated' => 'privacy:metadata:simgen_states:timecreated',
             'timemodified' => 'privacy:metadata:simgen_states:timemodified',
+            'timecompleted' => 'privacy:metadata:simgen_states:timecompleted',
             'activetime' => 'privacy:metadata:simgen_states:activetime',
+            'completedactivetime' => 'privacy:metadata:simgen_states:completedactivetime',
         ], 'privacy:metadata:simgen_states');
 
         $collection->add_database_table('simgen_versions', [
@@ -65,8 +70,13 @@ class provider implements
 
         $collection->add_database_table('simgen_conversations', [
             'userid' => 'privacy:metadata:simgen_conversations:userid',
+            'versionid' => 'privacy:metadata:simgen_conversations:versionid',
+            'personaid' => 'privacy:metadata:simgen_conversations:personaid',
             'messagedata' => 'privacy:metadata:simgen_conversations:messagedata',
             'signaldata' => 'privacy:metadata:simgen_conversations:signaldata',
+            'turncount' => 'privacy:metadata:simgen_conversations:turncount',
+            'resetcount' => 'privacy:metadata:simgen_conversations:resetcount',
+            'timecreated' => 'privacy:metadata:simgen_conversations:timecreated',
             'timemodified' => 'privacy:metadata:simgen_conversations:timemodified',
         ], 'privacy:metadata:simgen_conversations');
 
