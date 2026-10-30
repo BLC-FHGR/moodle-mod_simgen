@@ -109,8 +109,13 @@ class report_check extends external_api {
         $repairqueued = false;
         if (!$params['ok'] && $firstcheck && generator::autorepair_allowed($version)) {
             $simgen = $DB->get_record('simgen', ['id' => $cm->instance], '*', MUST_EXIST);
-            $repairqueued = generator::queue($simgen, (int)$USER->id,
-                get_string('error_prefill', 'mod_simgen', $update->checkerror), (int)$version->id, true);
+            generator::check_stale($simgen);
+            // A queued or running request (of the teacher or a repair after the static checks) has priority and
+            // must not be replaced.
+            if (!in_array((int)$simgen->status, [generator::STATUS_PENDING, generator::STATUS_GENERATING], true)) {
+                $repairqueued = generator::queue($simgen, (int)$USER->id,
+                    get_string('error_prefill', 'mod_simgen', $update->checkerror), (int)$version->id, true);
+            }
         }
 
         return ['status' => (int)$update->checkstatus, 'repairqueued' => $repairqueued];
