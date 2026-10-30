@@ -58,6 +58,25 @@ final class response_parser_test extends \advanced_testcase {
     }
 
     /**
+     * Usage examples and repeated versions of the component are not joined with the code.
+     */
+    public function test_several_js_blocks(): void {
+        $parsed = response_parser::parse("Beispiel:\n```jsx\n<Formula tex=\"x\" />\n```\n\n"
+            . "```jsx\nfunction App() { return null; }\n```\n");
+        $this->assertSame('function App() { return null; }', $parsed['sourcecode']);
+
+        // Helper components in a separate block stay.
+        $parsed = response_parser::parse("```jsx\nfunction Card() { return null; }\n```\n\n"
+            . "```jsx\nfunction App() { return <Card />; }\n```\n");
+        $this->assertSame("function Card() { return null; }\n\nfunction App() { return <Card />; }", $parsed['sourcecode']);
+
+        // A corrected second version replaces the first one.
+        $parsed = response_parser::parse("```jsx\nfunction App() { return 1; }\n```\nKorrigiert:\n"
+            . "```jsx\nfunction Helper() {}\nfunction App() { return 2; }\n```\n");
+        $this->assertSame("function Helper() {}\nfunction App() { return 2; }", $parsed['sourcecode']);
+    }
+
+    /**
      * Code blocks in the HTML of local_ai_manager (escaped code).
      */
     public function test_html_blocks(): void {

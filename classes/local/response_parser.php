@@ -91,7 +91,7 @@ class response_parser {
         }
 
         if ($js) {
-            $source = trim(implode("\n\n", $js));
+            $source = trim(implode("\n\n", self::select_js_blocks($js)));
             if (!preg_match('/\bApp\b/', $source) && !preg_match('/export\s+default/', $source)) {
                 throw new moodle_exception('error_noapp', 'mod_simgen');
             }
@@ -122,6 +122,39 @@ class response_parser {
             ];
         }
         throw new moodle_exception('error_nocode', 'mod_simgen');
+    }
+
+    /**
+     * JavaScript blocks that belong to the simulation.
+     *
+     * Models sometimes add usage examples (e.g. a single <Formula /> line) or repeat the component in a corrected
+     * second block. Joined with the real code, both cause a syntax error. If a block defines App, blocks without any
+     * declaration are dropped and only the longest block defining App is kept; other declarations (helper
+     * components in separate blocks) stay.
+     *
+     * @param string[] $blocks
+     * @return string[]
+     */
+    private static function select_js_blocks(array $blocks): array {
+        $definesapp = fn(string $code): bool => (bool)preg_match(
+            '/\b(function|class)\s+App\b|\b(const|let|var)\s+App\s*=|\bexport\s+default\b/', $code);
+        $appblocks = array_filter($blocks, $definesapp);
+        if (count($blocks) < 2 || !$appblocks) {
+            return $blocks;
+        }
+        uasort($appblocks, fn($a, $b) => strlen($b) <=> strlen($a));
+        $app = array_key_first($appblocks);
+
+        $selected = [];
+        foreach ($blocks as $i => $code) {
+            if ($i === $app) {
+                $selected[] = $code;
+            } else if (!$definesapp($code)
+                    && preg_match('/^\s*(async\s+)?(function|const|let|var|class)\b/m', $code)) {
+                $selected[] = $code;
+            }
+        }
+        return $selected;
     }
 
     /**
