@@ -274,7 +274,8 @@ if ($versionid) {
     echo $OUTPUT->render_from_template('mod_simgen/player', [
         'wrapperid' => $wrapperid,
         'src' => (new moodle_url('/mod/simgen/sim.php', $srcparams))->out(false),
-        'title' => format_string($simgen->name),
+        // Escaped by the template.
+        'title' => format_string($simgen->name, true, ['context' => $context, 'escape' => false]),
         'minheight' => (int)$simgen->minheight,
         'sandbox' => html_builder::SANDBOX,
         'showreset' => $cansave && !empty($simgen->savestate),
