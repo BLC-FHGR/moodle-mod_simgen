@@ -71,7 +71,6 @@ if ($form->is_cancelled()) {
     $personas = $data->codetype === 'react' ? conversation::normalise_personas((string)$data->personas) : [];
     $newversion = (object)[
         'simgenid' => $simgen->id,
-        'versionnum' => generator::next_versionnum((int)$simgen->id),
         'codetype' => $data->codetype === 'html' ? 'html' : 'react',
         'sourcecode' => $data->sourcecode,
         'css' => $data->codetype === 'html' ? '' : (string)$data->css,
@@ -90,7 +89,7 @@ if ($form->is_cancelled()) {
     // Manual code is never repaired automatically, but the teacher sees the findings of the static checks.
     $issues = code_checker::check($simgen, $newversion);
     $newversion->checkissues = $issues ? json_encode($issues, JSON_UNESCAPED_UNICODE) : null;
-    $newid = $DB->insert_record('simgen_versions', $newversion);
+    $newid = generator::insert_version($newversion);
     if ((int)$simgen->status === generator::STATUS_NONE) {
         $DB->set_field('simgen', 'status', generator::STATUS_READY, ['id' => $simgen->id]);
     }

@@ -113,6 +113,27 @@ final class generator_test extends \advanced_testcase {
     }
 
     /**
+     * New versions get the next free number, even if the number the caller computed earlier is taken meanwhile.
+     */
+    public function test_insert_version(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $module = $this->getDataGenerator()->create_module('simgen', ['course' => $course->id]);
+        $this->getDataGenerator()->get_plugin_generator('mod_simgen')->create_version($module);
+
+        // Computed before a parallel request stored version 2.
+        $version = (object)['simgenid' => $module->id, 'versionnum' => 2, 'codetype' => 'react',
+            'sourcecode' => 'function App() {}', 'origin' => 'manual', 'userid' => 0, 'timecreated' => time()];
+        $this->getDataGenerator()->get_plugin_generator('mod_simgen')->create_version($module);
+
+        $id = generator::insert_version($version);
+
+        $this->assertEquals(3, $DB->get_field('simgen_versions', 'versionnum', ['id' => $id]));
+        $this->assertEquals(3, $version->versionnum);
+    }
+
+    /**
      * Simulations without live conversations have no personas.
      */
     public function test_personas_not_a_conversation(): void {

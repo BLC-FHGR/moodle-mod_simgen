@@ -222,7 +222,6 @@ class generator {
 
             $version = (object)[
                 'simgenid' => $simgen->id,
-                'versionnum' => self::next_versionnum((int)$simgen->id),
                 'codetype' => $parsed['codetype'],
                 'sourcecode' => $parsed['sourcecode'],
                 'css' => $parsed['css'],
@@ -241,7 +240,7 @@ class generator {
             // Static checks before anybody sees the version.
             $issues = code_checker::check($simgen, $version);
             $version->checkissues = $issues ? json_encode($issues, JSON_UNESCAPED_UNICODE) : null;
-            $version->id = $DB->insert_record('simgen_versions', $version);
+            $version->id = self::insert_version($version);
 
             \mod_simgen\event\simulation_generated::create([
                 'objectid' => $version->id,
@@ -324,6 +323,31 @@ class generator {
             throw new \moodle_exception('error_nopersonas', 'mod_simgen');
         }
         return $personas;
+    }
+
+    /**
+     * Stores a new version with the next free version number.
+     *
+     * A generation and a manual edit can finish at the same moment and take the same number (unique index): the
+     * number is then determined again.
+     *
+     * @param stdClass $version version record without id; versionnum is set
+     * @return int id of the new version
+     */
+    public static function insert_version(stdClass $version): int {
+        global $DB;
+        for ($attempt = 1;; $attempt++) {
+            $version->versionnum = self::next_versionnum((int)$version->simgenid);
+            try {
+                return $DB->insert_record('simgen_versions', $version);
+            } catch (\dml_write_exception $e) {
+                $taken = $DB->record_exists('simgen_versions',
+                    ['simgenid' => $version->simgenid, 'versionnum' => $version->versionnum]);
+                if (!$taken || $attempt >= 3) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     /**
