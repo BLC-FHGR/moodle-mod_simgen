@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.6 (2026-10-30)
+
+- Nach dem Hinweis «Simulation aktualisiert» laden «Neu laden» und «Neu beginnen» im Player die ganze Seite neu. Bisher lud nur die Simulation neu; die Seite meldete weiter die alte Version, sodass weder Fortschritt gespeichert noch Gespräche geführt werden konnten. Ein Gespräch mit veralteter Version zeigt jetzt denselben Hinweis.
+- Briefing: Fach/Thema ist auf 255 Zeichen begrenzt. Ein längerer Text brach das Speichern der Aktivität mit einem Datenbankfehler ab.
+
 ## 0.5.5 (2026-10-30)
 
 - Parser: Anwendungsbeispiele (z. B. eine einzelne `<Formula />`-Zeile in einem eigenen Block) und eine korrigierte zweite Fassung von `App` werden nicht mehr an den Code gehängt; das ergab bisher einen Syntaxfehler. Hilfskomponenten in eigenen Blöcken bleiben.
