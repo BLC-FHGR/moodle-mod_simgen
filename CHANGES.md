@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.5.5 (2026-10-30)
+
+- Parser: Anwendungsbeispiele (z. B. eine einzelne `<Formula />`-Zeile in einem eigenen Block) und eine korrigierte zweite Fassung von `App` werden nicht mehr an den Code gehängt; das ergab bisher einen Syntaxfehler. Hilfskomponenten in eigenen Blöcken bleiben.
+- `SimBridge.user.firstname` enthält jetzt den Vornamen (bisher immer leer). Gäste erhalten weiterhin einen leeren Namen.
+- Privacy-API: Die Metadaten beschreiben alle personenbezogenen Felder von `simgen_states` und `simgen_conversations`.
+- Speichern eine Generierung und «Code bearbeiten» gleichzeitig eine neue Version, wird die Versionsnummer neu vergeben, statt mit einem Datenbankfehler abzubrechen.
+- Der Titel des Simulations-iframes (Screenreader) wird nicht mehr doppelt escapt («&amp;» statt «&»).
+
 ## 0.5.4 (2026-10-30)
 
 - Automatische Korrektur aus dem Starttest ersetzt keinen wartenden Auftrag mehr. Bisher ging eine angeforderte Überarbeitung ohne Hinweis verloren, wenn die Lehrperson vor dem Lauf des Cron eine fehlerhafte Version in der Vorschau öffnete.
