@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.5.7 (2026-11-02)
+
+- PowerPoint-Material: Die Folien kommen in der Reihenfolge der Präsentation (bisher nach Dateinamen, die PowerPoint beim Verschieben von Folien nicht anpasst). Dateien, die nicht zur Präsentation gehören, entfallen.
+- «Erneut versuchen» und «Jetzt direkt generieren» behalten bei einer gescheiterten automatischen Korrektur die Herkunft «Automatische Korrektur». Bisher begann die Zählung für die Obergrenze `autorepair` neu.
+- Wird eine Aktivität während der Generierung gelöscht, bleibt keine verwaiste Version in der Datenbank zurück.
+
 ## 0.5.6 (2026-10-30)
 
 - Nach dem Hinweis «Simulation aktualisiert» laden «Neu laden» und «Neu beginnen» im Player die ganze Seite neu. Bisher lud nur die Simulation neu; die Seite meldete weiter die alte Version, sodass weder Fortschritt gespeichert noch Gespräche geführt werden konnten. Ein Gespräch mit veralteter Version zeigt jetzt denselben Hinweis.
