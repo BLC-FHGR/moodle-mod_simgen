@@ -92,7 +92,7 @@ class content_extractor {
                 case 'docx':
                     return self::extract_zip_xml($file, '#^word/document\.xml$#', 'w:p');
                 case 'pptx':
-                    return self::extract_zip_xml($file, '#^ppt/slides/slide(\d+)\.xml$#', 'a:p', 'Folie');
+                    return self::extract_zip_xml($file, '#^ppt/slides/slide(\d+)\.xml$#', 'a:p', 'Folie', true);
                 case 'odt':
                 case 'odp':
                     return self::extract_zip_xml($file, '#^content\.xml$#', 'text:p');
@@ -114,10 +114,11 @@ class content_extractor {
      * @param string $entrypattern regex matching the relevant zip entries (first group = sort number)
      * @param string $paragraphtag tag that ends a paragraph
      * @param string|null $label label for each entry (e.g. "Folie") or null
+     * @param bool $slideorder sort PowerPoint slides in the order of the presentation (not of the file names)
      * @return string
      */
     private static function extract_zip_xml(stored_file $file, string $entrypattern, string $paragraphtag,
-            ?string $label = null): string {
+            ?string $label = null, bool $slideorder = false): string {
         if (!class_exists('\ZipArchive')) {
             return '';
         }
@@ -138,6 +139,11 @@ class content_extractor {
                 $entries[$name] = isset($matches[1]) ? (int)$matches[1] : 0;
             }
         }
+        if ($slideorder && ($order = self::pptx_slide_order($zip))) {
+            // PowerPoint does not rename the slide files when slides are moved. Files that are not part of the
+            // presentation are not shown by PowerPoint either.
+            $entries = array_intersect_key($order, $entries);
+        }
         asort($entries, SORT_NUMERIC);
 
         $out = [];
@@ -157,6 +163,38 @@ class content_extractor {
         $zip->close();
         @unlink($tmp);
         return implode("\n\n", $out);
+    }
+
+    /**
+     * Order of the slides of a PowerPoint presentation (ppt/presentation.xml and its relations).
+     *
+     * @param \ZipArchive $zip
+     * @return array zip entry name => slide number (1-based), empty if the order cannot be read
+     */
+    private static function pptx_slide_order(\ZipArchive $zip): array {
+        $presentation = $zip->getFromName('ppt/presentation.xml');
+        $rels = $zip->getFromName('ppt/_rels/presentation.xml.rels');
+        if ($presentation === false || $rels === false) {
+            return [];
+        }
+
+        $targets = [];
+        preg_match_all('/<Relationship\b[^>]*>/', $rels, $matches);
+        foreach ($matches[0] as $tag) {
+            if (preg_match('/\sId="([^"]+)"/', $tag, $id) && preg_match('/\sTarget="([^"]+)"/', $tag, $target)) {
+                $path = $target[1];
+                $targets[$id[1]] = strpos($path, '/') === 0 ? substr($path, 1) : 'ppt/' . $path;
+            }
+        }
+
+        $order = [];
+        preg_match_all('/<(?:\w+:)?sldId\b[^>]*?\s\w+:id="([^"]+)"/', $presentation, $matches);
+        foreach ($matches[1] as $relid) {
+            if (isset($targets[$relid]) && !isset($order[$targets[$relid]])) {
+                $order[$targets[$relid]] = count($order) + 1;
+            }
+        }
+        return $order;
     }
 
     /**
