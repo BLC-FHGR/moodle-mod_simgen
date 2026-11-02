@@ -134,6 +134,30 @@ final class generator_test extends \advanced_testcase {
     }
 
     /**
+     * Repeating a failed automatic repair keeps it an automatic repair.
+     */
+    public function test_requeue_keeps_autorepair(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $module = $this->getDataGenerator()->create_module('simgen', ['course' => $course->id]);
+        $version = $this->getDataGenerator()->get_plugin_generator('mod_simgen')->create_version($module,
+            ['origin' => 'ai']);
+        $DB->update_record('simgen', (object)['id' => $module->id, 'status' => generator::STATUS_ERROR,
+            'pendingfeedback' => 'Fix the error', 'pendingbaseversion' => $version->id, 'pendingautorepair' => 1,
+            'genrequested' => 100]);
+
+        $this->assertTrue(generator::requeue($DB->get_record('simgen', ['id' => $module->id]), 2));
+
+        $simgen = $DB->get_record('simgen', ['id' => $module->id], '*', MUST_EXIST);
+        $this->assertEquals(generator::STATUS_PENDING, $simgen->status);
+        $this->assertEquals('Fix the error', $simgen->pendingfeedback);
+        $this->assertEquals($version->id, $simgen->pendingbaseversion);
+        $this->assertEquals(1, $simgen->pendingautorepair);
+        $this->assertNotEquals(100, $simgen->genrequested);
+    }
+
+    /**
      * Simulations without live conversations have no personas.
      */
     public function test_personas_not_a_conversation(): void {

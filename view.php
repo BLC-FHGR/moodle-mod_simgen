@@ -67,7 +67,7 @@ if ($canmanage && $action !== '') {
             \core\output\notification::NOTIFY_INFO);
     } else if ($action === 'retry') {
         // Repeat the last request (fresh generation or revision).
-        if (!generator::queue($simgen, (int)$USER->id, (string)$simgen->pendingfeedback, (int)$simgen->pendingbaseversion)) {
+        if (!generator::requeue($simgen, (int)$USER->id)) {
             redirect($url, get_string('error_alreadyrunning', 'mod_simgen'), null,
                 \core\output\notification::NOTIFY_WARNING);
         }

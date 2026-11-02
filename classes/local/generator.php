@@ -72,6 +72,20 @@ class generator {
     }
 
     /**
+     * Queues the last request again (after an error), including whether it was an automatic repair.
+     *
+     * Otherwise a repeated repair would count as a revision of the teacher and restart the limit of repair rounds.
+     *
+     * @param stdClass $simgen instance record
+     * @param int $userid user on whose behalf the AI is called
+     * @return bool false if a generation is currently running (nothing was queued)
+     */
+    public static function requeue(stdClass $simgen, int $userid): bool {
+        return self::queue($simgen, $userid, (string)$simgen->pendingfeedback, (int)$simgen->pendingbaseversion,
+            !empty($simgen->pendingautorepair));
+    }
+
+    /**
      * Sets the request on the instance and queues the adhoc task (without checking the status).
      *
      * @param int $simgenid

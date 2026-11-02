@@ -37,8 +37,7 @@ require_capability('mod/simgen:manage', $context);
 $simgen = $DB->get_record('simgen', ['id' => $cm->instance], '*', MUST_EXIST);
 $url = new moodle_url('/mod/simgen/view.php', ['id' => $cm->id]);
 
-if ((int)$simgen->status !== generator::STATUS_PENDING
-        && !generator::queue($simgen, (int)$USER->id, (string)$simgen->pendingfeedback, (int)$simgen->pendingbaseversion)) {
+if ((int)$simgen->status !== generator::STATUS_PENDING && !generator::requeue($simgen, (int)$USER->id)) {
     // A generation is already running.
     redirect($url, get_string('error_alreadyrunning', 'mod_simgen'), null, \core\output\notification::NOTIFY_WARNING);
 }
