@@ -254,6 +254,10 @@ class generator {
             // Static checks before anybody sees the version.
             $issues = code_checker::check($simgen, $version);
             $version->checkissues = $issues ? json_encode($issues, JSON_UNESCAPED_UNICODE) : null;
+            if (!$DB->record_exists('simgen', ['id' => $simgen->id])) {
+                // The activity was deleted while the AI was working: do not leave an orphaned version.
+                return false;
+            }
             $version->id = self::insert_version($version);
 
             \mod_simgen\event\simulation_generated::create([
